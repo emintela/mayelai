@@ -40,6 +40,12 @@ export async function POST(req: Request) {
       "I couldn't find an answer",
       "I don't know",
       "I am not sure",
+      "I apologize",
+      "I'm not sure",
+      "I'm not familiar",
+      "I couldn't find",
+      "I am not able",
+      
     ];
     const suggestSearch = noAnswerPhrases.some((phrase) => reply.includes(phrase));
 
