@@ -1,7 +1,7 @@
 # See https://help.github.com/articles/ignoring-files/ for more about ignoring files.
 
 # dependencies
-/node_modules
+node_modules
 /.pnp
 .pnp.*
 .yarn/*
@@ -13,11 +13,8 @@
 # testing
 /coverage
 
-# next.js
-/.next/
-/out/
-
-# production
+# build output
+/dist
 /build
 
 # misc
@@ -35,9 +32,8 @@ yarn-error.log*
 .env*.local
 .env
 
-# vercel
-.vercel
+# clerk configuration (can include secrets)
+/.clerk/
 
-# typescript
-*.tsbuildinfo
-next-env.d.ts
+# unrelated local download, not part of the project
+/Miniconda3-latest-MacOSX-arm64.sh
