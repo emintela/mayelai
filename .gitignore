@@ -27,7 +27,7 @@ yarn-debug.log*
 yarn-error.log*
 .pnpm-debug.log*
 
-# env files (can opt-in for committing if needed
+# env files (can opt-in for committing if needed)
 .env*
 .env*.local
 .env
@@ -37,3 +37,4 @@ yarn-error.log*
 
 # unrelated local download, not part of the project
 /Miniconda3-latest-MacOSX-arm64.sh
+!.env.example

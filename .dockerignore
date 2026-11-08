@@ -1,0 +1,9 @@
+# Never send secrets or local build output into the image build
+**/.env
+**/.env.*
+**/node_modules
+dist
+.git
+.vscode
+.DS_Store
+*.sh
