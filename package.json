@@ -6,7 +6,7 @@
   "scripts": {
     "dev": "concurrently -k -n CLIENT,SERVER -c blue,green \"npm run dev:client\" \"npm run dev:server\"",
     "dev:client": "vite",
-    "dev:server": "npm run dev --prefix server",
+    "dev:server": "cd server && go run .",
     "build": "vite build",
     "preview": "vite preview"
   },
