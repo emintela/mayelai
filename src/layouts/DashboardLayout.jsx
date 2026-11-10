@@ -5,12 +5,12 @@ import { ConversationsProvider } from "@/context/ConversationsContext";
 const DashboardLayout = ({ children }) => {
   return (
     <ConversationsProvider>
-      <div className="h-full relative bg-background">
+      <div className="h-full relative app-surface">
         {/* Sidebar */}
         <div
           className="hidden h-full md:flex md:w-72
             md:flex-col md:fixed md:inset-y-0 z-[80]
-            bg-[#662d91]"
+            border-r border-sidebar-border"
         >
           <Sidebar />
         </div>

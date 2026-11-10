@@ -1,0 +1,24 @@
+# Fly.io config. Secrets (API keys, DATABASE_URL) are set with `fly secrets set`, never here.
+app = "mayelai"
+primary_region = "fra" # same region as the Neon database (aws-eu-central-1)
+
+[build]
+  dockerfile = "Dockerfile"
+
+[http_service]
+  internal_port = 8080
+  force_https = true
+  auto_stop_machines = "stop"
+  auto_start_machines = true
+  min_machines_running = 0
+
+  [[http_service.checks]]
+    grace_period = "10s"
+    interval = "30s"
+    method = "GET"
+    path = "/healthz"
+    timeout = "5s"
+
+[[vm]]
+  size = "shared-cpu-1x"
+  memory = "256mb"

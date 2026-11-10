@@ -51,7 +51,10 @@ func main() {
 	svc := chat.New(cfg, store, openai.New(cfg.OpenAIKey))
 	go pruneCache(ctx, store, cfg.CacheTTL)
 
-	app := fiber.New(fiber.Config{BodyLimit: 256 * 1024})
+	app := fiber.New(fiber.Config{
+		// Room for attachments: up to MAX_ATTACHMENTS files of MAX_ATTACHMENT_MB, base64-encoded (+33%).
+		BodyLimit: cfg.MaxAttachments*cfg.MaxAttachmentBytes*4/3 + 256*1024,
+	})
 	app.Use(recover.New())
 	app.Use(compress.New()) // gzip/brotli: smaller responses on slow mobile networks
 	app.Use(cors.New())

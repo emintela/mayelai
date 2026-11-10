@@ -7,15 +7,15 @@ import {
   ThumbsUp,
   ThumbsDown,
   Share2,
-  Send,
   Loader2,
   MessageSquare,
   Sparkles,
+  FileSpreadsheet,
+  FileText,
+  Image as ImageIcon,
 } from "lucide-react";
 import Heading from "@/components/heading";
-import { useForm } from "react-hook-form";
-import { formSchema } from "./constants";
-import { zodResolver } from "@hookform/resolvers/zod";
+import ChatComposer from "@/components/chat-composer";
 import { Link, useNavigate, useParams } from "react-router-dom";
 import { cn } from "@/lib/utils";
 import { apiErrorMessage, useApi } from "@/lib/api";
@@ -24,7 +24,7 @@ import { useConversations } from "@/context/ConversationsContext";
 const Avatar = ({ role }) => (
   <div
     className={cn(
-      "flex h-9 w-9 shrink-0 items-center justify-center rounded-full text-lg shadow-sm select-none",
+      "hidden h-9 w-9 sm:flex shrink-0 items-center justify-center rounded-full text-lg shadow-sm select-none",
       role === "user"
         ? "bg-primary text-primary-foreground"
         : "bg-gradient-to-br from-primary to-fuchsia-500 text-white"
@@ -36,7 +36,7 @@ const Avatar = ({ role }) => (
 
 // Shown while waiting for the reply.
 const ThinkingIndicator = ({ mode }) => (
-  <div className="flex items-start gap-3 animate-in fade-in-0 slide-in-from-bottom-1">
+  <div className="flex items-start gap-2 sm:gap-3 animate-in fade-in-0 slide-in-from-bottom-1">
     <Avatar role="assistant" />
     <div className="flex items-center gap-2 rounded-2xl rounded-bl-sm border border-border bg-muted px-4 py-3 shadow-sm">
       <span className="text-sm text-muted-foreground">
@@ -121,6 +121,40 @@ const MessageActions = ({ message, onFeedback }) => {
   );
 };
 
+// Files attached to a user message: photo thumbnails (this session only) or name chips.
+const MessageAttachments = ({ message }) => {
+  const list = message.localAttachments ?? message.metadata?.attachments;
+  if (!list?.length) return null;
+  return (
+    <div className={cn("flex flex-wrap gap-2", message.content && "mb-2")}>
+      {list.map((a, i) =>
+        a.previewUrl ? (
+          <img
+            key={i}
+            src={a.previewUrl}
+            alt={a.name}
+            className="max-h-48 max-w-full rounded-xl object-cover"
+          />
+        ) : (
+          <span
+            key={i}
+            className="inline-flex max-w-full items-center gap-1.5 rounded-lg bg-white/15 px-2 py-1 text-xs"
+          >
+            {a.kind === "spreadsheet" ? (
+              <FileSpreadsheet className="h-3.5 w-3.5 shrink-0" />
+            ) : a.kind === "image" ? (
+              <ImageIcon className="h-3.5 w-3.5 shrink-0" />
+            ) : (
+              <FileText className="h-3.5 w-3.5 shrink-0" />
+            )}
+            <span className="truncate">{a.name}</span>
+          </span>
+        )
+      )}
+    </div>
+  );
+};
+
 const ChatPage = () => {
   const { conversationId } = useParams();
   const navigate = useNavigate();
@@ -134,16 +168,12 @@ const ChatPage = () => {
   const [searchQuery, setSearchQuery] = useState("");
   const [showSearchButton, setShowSearchButton] = useState(false);
   const [quota, setQuota] = useState(null);
+  const [mode, setMode] = useState("chat"); // "chat" (Instant) | "search"
   const chatContainerRef = useRef(null);
   // The conversation currently on screen, so a late reply isn't shown in another chat.
   const activeIdRef = useRef(conversationId ?? null);
   // Set right after a new chat is created, so we don't refetch what we already have.
   const justCreatedRef = useRef(null);
-
-  const { register, handleSubmit, reset } = useForm({
-    resolver: zodResolver(formSchema),
-    defaultValues: { prompt: "" },
-  });
 
   // Load the conversation in the URL (or start empty for /chat).
   useEffect(() => {
@@ -186,22 +216,39 @@ const ChatPage = () => {
     }
   }, [messages, pending]);
 
-  const send = async (text, mode = "chat") => {
+  const send = async (text, mode = "chat", attachments = []) => {
     const sentFrom = conversationId ?? null;
     const tempId = `temp-${Date.now()}`;
+    // Shown immediately; image previews are kept after the server's copy replaces it.
+    const local = attachments.map(({ name, kind, size, previewUrl }) => ({ name, kind, size, previewUrl }));
     setMessages((prev) => [
       ...prev,
-      { id: tempId, role: "user", content: text, metadata: mode === "search" ? { mode } : undefined },
+      {
+        id: tempId,
+        role: "user",
+        content: text,
+        metadata: mode === "search" ? { mode } : undefined,
+        localAttachments: local.length ? local : undefined,
+      },
     ]);
     setShowSearchButton(false);
     setPending(mode);
     try {
-      const data = await api.sendMessage({ conversationId: sentFrom ?? undefined, message: text, mode });
+      const data = await api.sendMessage({
+        conversationId: sentFrom ?? undefined,
+        message: text,
+        mode,
+        attachments: attachments.length
+          ? attachments.map(({ name, type, data }) => ({ name, type, data }))
+          : undefined,
+      });
       upsert(data.conversation);
       setQuota(data.quota);
       if (activeIdRef.current !== sentFrom) return; // user switched chats meanwhile
       setMessages((prev) => [
-        ...prev.map((m) => (m.id === tempId ? data.userMessage : m)),
+        ...prev.map((m) =>
+          m.id === tempId ? { ...data.userMessage, localAttachments: m.localAttachments } : m
+        ),
         data.assistantMessage,
       ]);
       setSearchQuery(text);
@@ -229,10 +276,7 @@ const ChatPage = () => {
     }
   };
 
-  const onSubmit = async (values) => {
-    reset();
-    await send(values.prompt);
-  };
+  const onSend = ({ text, attachments, mode }) => send(text, mode, attachments);
 
   // Like / dislike: update immediately, roll back if saving fails.
   const handleFeedback = async (message, value) => {
@@ -251,24 +295,15 @@ const ChatPage = () => {
   const isEmpty = messages.length === 0 && !pending && !loadingChat && !loadError;
 
   const composer = (
-    <form onSubmit={handleSubmit(onSubmit)} className="relative flex items-center">
-      <input
-        {...register("prompt")}
-        placeholder="Message Mayel'AI..."
-        autoComplete="off"
-        autoFocus={isEmpty}
-        className="w-full rounded-full border border-input bg-card py-3 pl-5 pr-14 text-sm shadow-sm outline-none transition focus:ring-2 focus:ring-primary/40 disabled:opacity-50"
-        disabled={!!pending || !!loadError}
-      />
-      <button
-        type="submit"
-        disabled={!!pending || !!loadError}
-        aria-label="Send message"
-        className="absolute right-1.5 flex h-9 w-9 items-center justify-center rounded-full bg-primary text-primary-foreground transition hover:opacity-90 disabled:opacity-50"
-      >
-        {pending ? <Loader2 className="h-4 w-4 animate-spin" /> : <Send className="h-4 w-4" />}
-      </button>
-    </form>
+    <ChatComposer
+      onSend={onSend}
+      busy={!!pending}
+      disabled={!!loadError}
+      autoFocus={isEmpty}
+      menuPlacement={isEmpty ? "down" : "up"}
+      mode={mode}
+      onModeChange={setMode}
+    />
   );
 
   const quotaNote = remaining !== null && remaining <= 10 && (
@@ -288,19 +323,20 @@ const ChatPage = () => {
   );
 
   return (
-    <div className="flex h-full flex-col bg-background">
+    <div className="flex h-full flex-col">
       <Heading
         title="💬 AI Chat"
         description="Mayel'AI — Advanced AI Chat with Web Search"
         icon={MessageSquare}
         iconColor="text-violet-500"
         bgColor="bg-violet-500/10"
+        className={isEmpty ? undefined : "hidden md:flex"}
       />
 
       {isEmpty ? (
         // New chat: greeting and message box centered on the page.
-        <div className="flex flex-1 flex-col items-center justify-center px-4 pb-[10vh]">
-          <div className="text-5xl">👋</div>
+        <div className="flex flex-1 flex-col items-center justify-center px-3 pb-[max(10vh,env(safe-area-inset-bottom))] sm:px-4">
+          <div className="text-4xl sm:text-5xl">👋</div>
           <h3 className="mt-3 text-xl font-semibold">Hey, I'm Mayel'AI</h3>
           <p className="mt-2 max-w-sm text-center text-sm text-muted-foreground">
             Ask me anything — quick questions or deep dives. I'll offer to search the web if I'm
@@ -315,7 +351,7 @@ const ChatPage = () => {
         <>
           <div
             ref={chatContainerRef}
-            className="mx-auto flex min-h-0 w-full max-w-6xl flex-1 flex-col gap-6 overflow-y-auto px-4 py-6"
+            className="mx-auto flex min-h-0 w-full max-w-6xl flex-1 flex-col gap-4 overflow-y-auto overscroll-contain px-3 py-4 sm:gap-6 sm:px-4 sm:py-6"
           >
             {loadingChat && (
               <div className="flex flex-1 items-center justify-center gap-2 text-sm text-muted-foreground">
@@ -336,12 +372,12 @@ const ChatPage = () => {
               <div
                 key={message.id}
                 className={cn(
-                  "flex items-start gap-3 animate-in fade-in-0 slide-in-from-bottom-1",
+                  "flex items-start gap-2 animate-in fade-in-0 slide-in-from-bottom-1 sm:gap-3",
                   message.role === "user" && "flex-row-reverse"
                 )}
               >
                 <Avatar role={message.role} />
-                <div className="flex max-w-[75%] flex-col">
+                <div className="flex max-w-[88%] min-w-0 flex-col sm:max-w-[75%]">
                   <div
                     className={cn(
                       "rounded-2xl px-4 py-3 shadow-sm",
@@ -355,7 +391,10 @@ const ChatPage = () => {
                         <Brain className="h-3 w-3" /> AI Search
                       </span>
                     )}
-                    <p className="whitespace-pre-wrap text-sm leading-relaxed">{message.content}</p>
+                    <MessageAttachments message={message} />
+                    {message.content && (
+                      <p className="whitespace-pre-wrap break-words text-sm leading-relaxed">{message.content}</p>
+                    )}
                     {message.upgrade && (
                       <Link
                         to="/settings"
@@ -376,12 +415,12 @@ const ChatPage = () => {
           </div>
 
           <div className="w-full shrink-0 border-t border-border bg-background/80 backdrop-blur-md">
-            <div className="mx-auto w-full max-w-6xl p-4">
+            <div className="mx-auto w-full max-w-6xl px-2 pb-[max(0.5rem,env(safe-area-inset-bottom))] pt-2 sm:p-4">
               {composer}
               {quotaNote}
 
               {showSearchButton && (
-                <div className="mt-3 flex gap-2 animate-in fade-in-0 slide-in-from-bottom-1">
+                <div className="mt-2 flex gap-2 animate-in fade-in-0 slide-in-from-bottom-1">
                   <Link
                     to={`/websearch?searchQuery=${encodeURIComponent(searchQuery)}`}
                     className="flex-1"

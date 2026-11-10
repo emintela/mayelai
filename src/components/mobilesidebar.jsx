@@ -28,7 +28,7 @@ const Mobilesidebar = () => {
           <Menu />
         </Button>
       </SheetTrigger>
-      <SheetContent side="left" className="p-0">
+      <SheetContent side="left" className="w-[85%] max-w-xs p-0 pb-[env(safe-area-inset-bottom)] pt-[env(safe-area-inset-top)]">
         <Sidebar />
       </SheetContent>
     </Sheet>

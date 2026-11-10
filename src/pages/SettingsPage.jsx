@@ -12,7 +12,7 @@ const formatDate = (iso) =>
 const limitText = (n, noun) => (n === 0 ? `Unlimited ${noun}` : `${n} ${noun} per day`);
 
 const Card = ({ title, children, className }) => (
-  <section className={cn("rounded-2xl border border-border bg-card p-6 shadow-sm", className)}>
+  <section className={cn("rounded-2xl border border-border bg-card p-4 shadow-sm sm:p-6", className)}>
     {title && <h2 className="mb-4 text-lg font-semibold">{title}</h2>}
     {children}
   </section>
@@ -133,7 +133,7 @@ const SettingsPage = () => {
   const price = formatPrice(billing?.price) ?? "Pro";
 
   return (
-    <div className="flex min-h-full flex-col bg-background">
+    <div className="flex min-h-full flex-col">
       <Heading
         title="Settings"
         description="Your plan, usage and data"

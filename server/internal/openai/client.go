@@ -14,8 +14,42 @@ import (
 )
 
 type Message struct {
-	Role    string `json:"role"`
-	Content string `json:"content"`
+	Role    string
+	Content string
+	// Parts, when set, replaces Content with a multi-part message (text,
+	// images, files). Only user messages may carry images or files.
+	Parts []Part
+}
+
+// Part is one piece of a multi-part user message.
+type Part struct {
+	Type     string    `json:"type"` // "text", "image_url" or "file"
+	Text     string    `json:"text,omitempty"`
+	ImageURL *ImageURL `json:"image_url,omitempty"`
+	File     *File     `json:"file,omitempty"`
+}
+
+type ImageURL struct {
+	URL    string `json:"url"`              // https URL or data:image/...;base64,...
+	Detail string `json:"detail,omitempty"` // "low", "high" or "auto"
+}
+
+type File struct {
+	Filename string `json:"filename"`
+	FileData string `json:"file_data"` // data:application/pdf;base64,...
+}
+
+func (m Message) MarshalJSON() ([]byte, error) {
+	if len(m.Parts) > 0 {
+		return json.Marshal(struct {
+			Role    string `json:"role"`
+			Content []Part `json:"content"`
+		}{m.Role, m.Parts})
+	}
+	return json.Marshal(struct {
+		Role    string `json:"role"`
+		Content string `json:"content"`
+	}{m.Role, m.Content})
 }
 
 type ChatRequest struct {
@@ -51,8 +85,10 @@ type ChatResult struct {
 type chatResponse struct {
 	Model   string `json:"model"`
 	Choices []struct {
-		Message      Message `json:"message"`
-		FinishReason string  `json:"finish_reason"`
+		Message struct {
+			Content string `json:"content"`
+		} `json:"message"`
+		FinishReason string `json:"finish_reason"`
 	} `json:"choices"`
 	Usage Usage `json:"usage"`
 }

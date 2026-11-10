@@ -83,9 +83,9 @@ type Reply struct {
 // Send adds the user's message to a conversation (a new one if
 // conversationID is empty), gets the assistant's reply, and stores both.
 // The database is hit exactly twice: once before calling the model and once after.
-func (s *Service) Send(ctx context.Context, userID, conversationID, text, mode string) (*Reply, error) {
+func (s *Service) Send(ctx context.Context, userID, conversationID, text, mode string, attachments []Attachment) (*Reply, error) {
 	text = strings.TrimSpace(text)
-	if text == "" {
+	if text == "" && len(attachments) == 0 {
 		return nil, ErrEmpty
 	}
 	if len([]rune(text)) > s.cfg.MaxInputChars {
@@ -94,6 +94,13 @@ func (s *Service) Send(ctx context.Context, userID, conversationID, text, mode s
 	if mode != ModeSearch {
 		mode = ModeChat
 	}
+	files, err := s.processAttachments(attachments)
+	if err != nil {
+		return nil, err
+	}
+	if mode == ModeSearch && hasVisual(files) {
+		return nil, attachErr("Photos and PDFs can't be used with Search. Switch to Instant to ask about them.")
+	}
 	model := s.cfg.ChatModel
 	if mode == ModeSearch {
 		model = s.cfg.SearchModel
@@ -101,7 +108,7 @@ func (s *Service) Send(ctx context.Context, userID, conversationID, text, mode s
 
 	// Cost saver: identical first questions in a new chat reuse a cached answer.
 	cacheKey := ""
-	if s.cfg.CacheEnabled && mode == ModeChat && conversationID == "" {
+	if s.cfg.CacheEnabled && mode == ModeChat && conversationID == "" && len(files) == 0 {
 		cacheKey = s.cacheKey(model, text)
 	}
 
@@ -122,7 +129,11 @@ func (s *Service) Send(ctx context.Context, userID, conversationID, text, mode s
 
 	conv := st.Conversation
 	if conv == nil {
-		conv = &db.Conversation{Title: titleFrom(text)}
+		title := text
+		if title == "" {
+			title = "📎 " + files[0].name
+		}
+		conv = &db.Conversation{Title: titleFrom(title)}
 	}
 	usage := db.Usage{Requests: 1}
 	if mode == ModeSearch {
@@ -138,7 +149,7 @@ func (s *Service) Send(ctx context.Context, userID, conversationID, text, mode s
 	} else {
 		res, err := s.oa.Chat(ctx, openai.ChatRequest{
 			Model:               model,
-			Messages:            s.buildPrompt(conv, st.History, text),
+			Messages:            s.buildPrompt(conv, st.History, text, files),
 			MaxCompletionTokens: s.cfg.MaxOutputTokens,
 			ReasoningEffort:     s.cfg.ReasoningEffort,
 			PromptCacheKey:      "mayelai-chat",
@@ -174,8 +185,14 @@ func (s *Service) Send(ctx context.Context, userID, conversationID, text, mode s
 	}
 
 	userMsg := db.Message{Role: "user", Content: text}
-	if mode == ModeSearch {
-		userMsg.Metadata = map[string]any{"mode": mode}
+	if mode == ModeSearch || len(files) > 0 {
+		userMsg.Metadata = map[string]any{}
+		if mode == ModeSearch {
+			userMsg.Metadata["mode"] = mode
+		}
+		if len(files) > 0 {
+			userMsg.Metadata["attachments"] = attachmentMeta(files)
+		}
 	}
 	t2 := time.Now()
 	saved, userMsg, asstMsg, err := s.store.SaveChat(ctx, userID, conversationID, conv.Title,
@@ -207,7 +224,7 @@ func (s *Service) Send(ctx context.Context, userID, conversationID, text, mode s
 // buildPrompt assembles: stable system prompt (first, so OpenAI's prompt
 // caching discount applies), the rolling summary of older messages, the
 // recent unsummarized messages, then the new user message.
-func (s *Service) buildPrompt(conv *db.Conversation, history []db.Message, text string) []openai.Message {
+func (s *Service) buildPrompt(conv *db.Conversation, history []db.Message, text string, files []processed) []openai.Message {
 	system := s.cfg.SystemPrompt
 	if conv.Summary != "" {
 		// Appended after the fixed prompt so the cached prefix is unchanged.
@@ -220,9 +237,26 @@ func (s *Service) buildPrompt(conv *db.Conversation, history []db.Message, text 
 		history = history[len(history)-max:]
 	}
 	for _, m := range history {
-		msgs = append(msgs, openai.Message{Role: m.Role, Content: m.Content})
+		content := m.Content
+		if m.Role == "user" {
+			content = historyContent(content, m.Metadata)
+		}
+		msgs = append(msgs, openai.Message{Role: m.Role, Content: content})
 	}
-	return append(msgs, openai.Message{Role: "user", Content: text})
+
+	if text == "" {
+		text = "(The user sent the attached file(s) without a message. Look at them and respond helpfully.)"
+	}
+	user := openai.Message{Role: "user", Content: userContent(text, files)}
+	if hasVisual(files) {
+		user.Parts = []openai.Part{{Type: "text", Text: user.Content}}
+		for _, f := range files {
+			if f.part != nil {
+				user.Parts = append(user.Parts, *f.part)
+			}
+		}
+	}
+	return append(msgs, user)
 }
 
 // maybeSummarize folds older messages into the conversation's rolling summary
@@ -257,7 +291,11 @@ func (s *Service) maybeSummarize(userID string, conv *db.Conversation, unsummari
 			if m.Role == "assistant" {
 				who = "Assistant"
 			}
-			fmt.Fprintf(&b, "%s: %s\n", who, truncate(m.Content, 2000))
+			content := m.Content
+			if names := attachmentNames(m.Metadata); names != "" {
+				content += " [attached: " + names + "]"
+			}
+			fmt.Fprintf(&b, "%s: %s\n", who, truncate(content, 2000))
 		}
 
 		res, err := s.oa.Chat(ctx, openai.ChatRequest{

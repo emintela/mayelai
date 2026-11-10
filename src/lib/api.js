@@ -23,8 +23,9 @@ export function useApi() {
     const conv = (id) => `/api/conversations/${encodeURIComponent(id)}`;
 
     return {
-      sendMessage: ({ conversationId, message, mode }) =>
-        request("post", "/api/chat", { data: { conversationId, message, mode } }),
+      // attachments: [{ name, type, data (base64) }]
+      sendMessage: ({ conversationId, message, mode, attachments }) =>
+        request("post", "/api/chat", { data: { conversationId, message, mode, attachments } }),
       listConversations: (q) =>
         request("get", "/api/conversations", { params: q ? { q } : undefined }),
       getConversation: (id) => request("get", conv(id)),

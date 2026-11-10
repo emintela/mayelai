@@ -12,6 +12,8 @@ body,
 
 body {
   margin: 0;
+  -webkit-tap-highlight-color: transparent;
+  overscroll-behavior-y: none; /* no rubber-band bounce of the whole app on iOS */
 }
 
 html {
@@ -73,75 +75,106 @@ html {
 }
 
 :root {
-  /* brand: #662d91 (rich violet), paired with a warm amber/gold accent */
+  /* Palette: soft lavender surfaces, white cards, blue-violet primary (#6d4fe0),
+     slate text, pink/lavender background glows. */
+  --background: oklch(0.977 0.01 300);
+  --foreground: oklch(0.25 0.03 280);
   --card: oklch(1 0 0);
-  --card-foreground: oklch(0.129 0.042 264.695);
+  --card-foreground: oklch(0.25 0.03 280);
   --popover: oklch(1 0 0);
-  --popover-foreground: oklch(0.129 0.042 264.695);
-  --primary: oklch(0.426 0.16 307);
-  --primary-foreground: oklch(0.985 0 0);
-  --secondary: oklch(0.968 0.009 307);
-  --secondary-foreground: oklch(0.3 0.1 307);
-  --muted: oklch(0.968 0.009 307);
-  --muted-foreground: oklch(0.554 0.05 307);
-  --accent: oklch(0.955 0.025 307);
-  --accent-foreground: oklch(0.3 0.1 307);
+  --popover-foreground: oklch(0.25 0.03 280);
+  --primary: oklch(0.55 0.2 287);
+  --primary-foreground: oklch(0.99 0 0);
+  --secondary: oklch(0.96 0.018 295);
+  --secondary-foreground: oklch(0.38 0.12 287);
+  --muted: oklch(0.96 0.015 295);
+  --muted-foreground: oklch(0.54 0.035 285);
+  --accent: oklch(0.94 0.035 293);
+  --accent-foreground: oklch(0.46 0.2 287);
   --destructive: oklch(0.577 0.245 27.325);
   --destructive-foreground: oklch(0.577 0.245 27.325);
-  --border: oklch(0.921 0.02 307);
-  --input: oklch(0.921 0.02 307);
-  --ring: oklch(0.62 0.14 307);
-  --chart-1: oklch(0.426 0.16 307);
-  --chart-2: oklch(0.769 0.165 70.08);
+  --border: oklch(0.92 0.022 295);
+  --input: oklch(0.9 0.025 295);
+  --ring: oklch(0.6 0.18 287);
+  --chart-1: oklch(0.55 0.2 287);
+  --chart-2: oklch(0.7 0.16 340);
   --chart-3: oklch(0.704 0.123 182.5);
-  --chart-4: oklch(0.645 0.215 16.44);
-  --chart-5: oklch(0.585 0.204 277.12);
-  --radius: 0.625rem;
-  --sidebar: oklch(0.984 0.003 247.858);
-  --sidebar-foreground: oklch(0.129 0.042 264.695);
-  --sidebar-primary: oklch(0.426 0.16 307);
-  --sidebar-primary-foreground: oklch(0.985 0 0);
-  --sidebar-accent: oklch(0.955 0.025 307);
-  --sidebar-accent-foreground: oklch(0.3 0.1 307);
-  --sidebar-border: oklch(0.921 0.02 307);
-  --sidebar-ring: oklch(0.62 0.14 307);
-  --background: oklch(1 0 0);
-  --foreground: oklch(0.145 0 0);
+  --chart-4: oklch(0.769 0.165 70.08);
+  --chart-5: oklch(0.62 0.15 250);
+  --radius: 0.75rem;
+  --sidebar: oklch(0.985 0.008 300 / 0.75);
+  --sidebar-foreground: oklch(0.3 0.03 280);
+  --sidebar-primary: oklch(0.55 0.2 287);
+  --sidebar-primary-foreground: oklch(0.99 0 0);
+  --sidebar-accent: oklch(0.935 0.04 293);
+  --sidebar-accent-foreground: oklch(0.46 0.2 287);
+  --sidebar-border: oklch(0.92 0.022 295);
+  --sidebar-ring: oklch(0.6 0.18 287);
+  /* background glows */
+  --glow-1: oklch(0.93 0.045 345 / 0.7);
+  --glow-2: oklch(0.92 0.05 290 / 0.75);
+  /* sidebar gradient tints */
+  --side-purple: oklch(0.86 0.09 292 / 0.85);
+  --side-pink: oklch(0.88 0.08 345 / 0.75);
+  --side-green: oklch(0.9 0.07 160 / 0.6);
 }
 
 .dark {
-  --background: oklch(0.129 0.042 264.695);
-  --foreground: oklch(0.984 0.003 247.858);
-  --card: oklch(0.129 0.042 264.695);
-  --card-foreground: oklch(0.984 0.003 247.858);
-  --popover: oklch(0.129 0.042 264.695);
-  --popover-foreground: oklch(0.984 0.003 247.858);
-  --primary: oklch(0.62 0.16 307);
+  --background: oklch(0.17 0.03 285);
+  --foreground: oklch(0.95 0.01 295);
+  --card: oklch(0.21 0.035 285);
+  --card-foreground: oklch(0.95 0.01 295);
+  --popover: oklch(0.21 0.035 285);
+  --popover-foreground: oklch(0.95 0.01 295);
+  --primary: oklch(0.68 0.17 289);
   --primary-foreground: oklch(0.99 0 0);
-  --secondary: oklch(0.279 0.045 307);
-  --secondary-foreground: oklch(0.984 0.003 307);
-  --muted: oklch(0.279 0.045 307);
-  --muted-foreground: oklch(0.704 0.045 307);
-  --accent: oklch(0.279 0.045 307);
-  --accent-foreground: oklch(0.984 0.003 307);
+  --secondary: oklch(0.26 0.04 288);
+  --secondary-foreground: oklch(0.92 0.03 295);
+  --muted: oklch(0.25 0.035 288);
+  --muted-foreground: oklch(0.72 0.035 290);
+  --accent: oklch(0.29 0.06 289);
+  --accent-foreground: oklch(0.85 0.1 290);
   --destructive: oklch(0.396 0.141 25.723);
   --destructive-foreground: oklch(0.637 0.237 25.331);
-  --border: oklch(0.279 0.045 307);
-  --input: oklch(0.279 0.045 307);
-  --ring: oklch(0.62 0.16 307);
-  --chart-1: oklch(0.62 0.16 307);
-  --chart-2: oklch(0.769 0.165 70.08);
+  --border: oklch(0.3 0.04 288);
+  --input: oklch(0.33 0.045 288);
+  --ring: oklch(0.68 0.17 289);
+  --chart-1: oklch(0.68 0.17 289);
+  --chart-2: oklch(0.72 0.15 340);
   --chart-3: oklch(0.704 0.123 182.5);
-  --chart-4: oklch(0.645 0.215 16.44);
-  --chart-5: oklch(0.585 0.204 277.12);
-  --sidebar: oklch(0.208 0.042 265.755);
-  --sidebar-foreground: oklch(0.984 0.003 247.858);
-  --sidebar-primary: oklch(0.62 0.16 307);
+  --chart-4: oklch(0.769 0.165 70.08);
+  --chart-5: oklch(0.66 0.14 250);
+  --sidebar: oklch(0.19 0.035 285 / 0.8);
+  --sidebar-foreground: oklch(0.9 0.015 295);
+  --sidebar-primary: oklch(0.68 0.17 289);
   --sidebar-primary-foreground: oklch(0.99 0 0);
-  --sidebar-accent: oklch(0.279 0.045 307);
-  --sidebar-accent-foreground: oklch(0.984 0.003 307);
-  --sidebar-border: oklch(0.279 0.045 307);
-  --sidebar-ring: oklch(0.62 0.16 307);
+  --sidebar-accent: oklch(0.29 0.06 289);
+  --sidebar-accent-foreground: oklch(0.85 0.1 290);
+  --sidebar-border: oklch(0.3 0.04 288);
+  --sidebar-ring: oklch(0.68 0.17 289);
+  --glow-1: oklch(0.3 0.08 340 / 0.35);
+  --glow-2: oklch(0.32 0.1 285 / 0.45);
+  --side-purple: oklch(0.32 0.11 292 / 0.7);
+  --side-pink: oklch(0.32 0.09 345 / 0.55);
+  --side-green: oklch(0.32 0.07 160 / 0.45);
+}
+
+/* Page background: base color plus two soft glows (pink top-right, lavender left). */
+.app-surface {
+  background-color: var(--background);
+  background-image:
+    radial-gradient(60rem 28rem at 90% -10%, var(--glow-1), transparent 70%),
+    radial-gradient(45rem 40rem at -10% 25%, var(--glow-2), transparent 70%);
+  background-attachment: fixed;
+}
+
+/* Left menu only: purple at the top, pink in the middle-right, a hint of green at the bottom. */
+.sidebar-surface {
+  background-color: var(--sidebar);
+  background-image:
+    radial-gradient(120% 45% at 0% 0%, var(--side-purple), transparent 75%),
+    radial-gradient(110% 40% at 100% 50%, var(--side-pink), transparent 75%),
+    radial-gradient(120% 40% at 10% 100%, var(--side-green), transparent 75%);
 }
 
 @layer base {

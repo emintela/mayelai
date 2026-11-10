@@ -64,22 +64,26 @@ func Register(app *fiber.App, d Deps) {
 	})
 }
 
-// POST /api/chat  { conversationId?, message, mode?: "chat" | "search" }
+// POST /api/chat  { conversationId?, message, mode?: "chat" | "search", attachments?: [{name, type, data}] }
 func sendMessage(svc *chat.Service) fiber.Handler {
 	return func(c fiber.Ctx) error {
 		var body struct {
-			ConversationID string `json:"conversationId"`
-			Message        string `json:"message"`
-			Mode           string `json:"mode"`
+			ConversationID string            `json:"conversationId"`
+			Message        string            `json:"message"`
+			Mode           string            `json:"mode"`
+			Attachments    []chat.Attachment `json:"attachments"`
 		}
 		if err := c.Bind().JSON(&body); err != nil {
 			return jsonError(c, fiber.StatusBadRequest, "Invalid JSON body")
 		}
-		reply, err := svc.Send(c.Context(), auth.UserID(c), body.ConversationID, body.Message, body.Mode)
+		reply, err := svc.Send(c.Context(), auth.UserID(c), body.ConversationID, body.Message, body.Mode, body.Attachments)
 		var limitErr *chat.LimitError
+		var attachErr *chat.AttachmentError
 		switch {
 		case err == nil:
 			return c.JSON(reply)
+		case errors.As(err, &attachErr):
+			return jsonError(c, fiber.StatusBadRequest, attachErr.Msg)
 		case errors.Is(err, chat.ErrEmpty):
 			return jsonError(c, fiber.StatusBadRequest, "Message is required")
 		case errors.Is(err, chat.ErrTooLong):

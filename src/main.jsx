@@ -17,7 +17,7 @@ function ClerkProviderWithRoutes({ children }) {
     <ClerkProvider
       publishableKey={CLERK_PUBLISHABLE_KEY}
       navigate={(to) => navigate(to)}
-      appearance={{ variables: { colorPrimary: "#662d91" } }}
+      appearance={{ variables: { colorPrimary: "#6d4fe0" } }}
     >
       {children}
     </ClerkProvider>

@@ -6,15 +6,16 @@ const Heading = ({
   icon: Icon,
   iconColor,
   bgColor,
+  className,
 }) => {
   return (
-    <div className="px-4 lg:px-8 flex items-center gap-x-3 mb-8">
-      <div className={cn("p-2 w-fit rounded-md", bgColor)}>
-        <Icon className={cn("w-10 h-10", iconColor)} />
+    <div className={cn("mb-4 mt-4 flex items-center gap-x-3 px-4 sm:mb-8 lg:px-8", className)}>
+      <div className={cn("w-fit rounded-md p-2", bgColor)}>
+        <Icon className={cn("h-7 w-7 sm:h-10 sm:w-10", iconColor)} />
       </div>
-      <div>
-        <h2 className="text-3xl font-bold">{title}</h2>
-        <p className="text-sm text-muted-foreground">{description}</p>
+      <div className="min-w-0">
+        <h2 className="text-xl font-bold sm:text-3xl">{title}</h2>
+        <p className="truncate text-xs text-muted-foreground sm:text-sm">{description}</p>
       </div>
     </div>
   );

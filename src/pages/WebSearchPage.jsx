@@ -34,7 +34,7 @@ const WebSearchPage = () => {
   }, [searchQuery, isScriptLoaded]);
 
   return (
-    <div className="flex min-h-full flex-col bg-background">
+    <div className="flex min-h-full flex-col">
       <Heading
         title="🌐 Web Search"
         description="Real-time results from across the web"
