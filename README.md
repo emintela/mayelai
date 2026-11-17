@@ -12,7 +12,7 @@ A React (Vite) single-page app with a Go ([Fiber](https://gofiber.io)) backend. 
   - `main.go` — app setup, serves the built frontend in production
   - `internal/config` — all settings (env vars), including cost controls
   - `internal/auth` — Clerk session-token verification
-  - `internal/db` — Postgres store; `schema.sql` is applied automatically on startup
+  - `internal/db` — Postgres store; migrations in `server/migrations/` are applied automatically on startup
   - `internal/chat` — reply generation, history window, summaries, caching, quotas
   - `internal/billing` — Stripe Checkout, Customer Portal and webhook
   - `internal/openai` — minimal OpenAI Chat Completions client
@@ -47,6 +47,19 @@ All configurable in `server/.env` (see `server/.env.example`):
 - **Prompt caching** — the system prompt is fixed and sent first with a `prompt_cache_key`, so OpenAI bills repeated prompt prefixes at a discount.
 - **Limits** — max reply length, max message length, per-plan daily message and AI-search quotas, and a per-minute burst limit.
 - **Usage tracking** — the `usage_daily` table records requests and tokens per user per day.
+
+## Money (IOU tracker)
+
+Track money lent to or borrowed from friends and family, under **Money** in the sidebar.
+
+- Log a loan with the form, or in one sentence ("J'ai prêté 200 $ à Patrick jusqu'au 30"); the assistant fills the form and you check it.
+- Share a link so the other person can confirm or dispute the loan without an account (`/l/<token>`).
+- Record repayments (Zelle, Cash App, M-Pesa, Orange Money, cash…); the loan closes when fully paid.
+- The assistant writes polite reminders in English or French (Lingala coming soon); you send them from your own WhatsApp or SMS.
+- USD, EUR and CAD. Free plan: 3 open loans (`FREE_OPEN_LOANS`); Pro: unlimited.
+- Mayel'AI never holds or moves money.
+
+The schema lives in `server/migrations/` (goose, tracked in the `mayelai_migrations` table) and is applied automatically when the server starts.
 
 ## Billing (Stripe)
 

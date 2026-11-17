@@ -3,7 +3,6 @@ package db
 
 import (
 	"context"
-	_ "embed"
 	"encoding/json"
 	"errors"
 	"fmt"
@@ -14,19 +13,21 @@ import (
 	"github.com/jackc/pgx/v5"
 	"github.com/jackc/pgx/v5/pgconn"
 	"github.com/jackc/pgx/v5/pgxpool"
-)
 
-//go:embed schema.sql
-var schema string
+	"mayelai/server/internal/migrate"
+)
 
 var ErrNotFound = errors.New("not found")
 
 type Store struct{ pool *pgxpool.Pool }
 
-// Open connects to Postgres and applies the schema.
+// Open applies pending migrations (server/migrations) and connects to Postgres.
 func Open(ctx context.Context, url string) (*Store, error) {
 	if url == "" {
 		return nil, errors.New("DATABASE_URL is not set")
+	}
+	if _, err := migrate.Up(ctx, url); err != nil {
+		return nil, fmt.Errorf("migrate: %w", err)
 	}
 	cfg, err := pgxpool.ParseConfig(url)
 	if err != nil {
@@ -42,14 +43,17 @@ func Open(ctx context.Context, url string) (*Store, error) {
 	if err != nil {
 		return nil, err
 	}
-	if _, err := pool.Exec(ctx, schema); err != nil {
+	if err := pool.Ping(ctx); err != nil {
 		pool.Close()
-		return nil, fmt.Errorf("apply schema: %w", err)
+		return nil, fmt.Errorf("connect: %w", err)
 	}
 	return &Store{pool: pool}, nil
 }
 
 func (s *Store) Close() { s.pool.Close() }
+
+// Pool exposes the connection pool to feature packages (money).
+func (s *Store) Pool() *pgxpool.Pool { return s.pool }
 
 func (s *Store) Ping(ctx context.Context) error { return s.pool.Ping(ctx) }
 

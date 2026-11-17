@@ -16,6 +16,7 @@ import (
 	"mayelai/server/internal/chat"
 	"mayelai/server/internal/config"
 	"mayelai/server/internal/db"
+	"mayelai/server/internal/money"
 	"mayelai/server/internal/openai"
 )
 
@@ -26,6 +27,8 @@ type Deps struct {
 	Billing   *billing.Stripe
 	Config    config.Config
 	PerMinute int
+	Money     *money.Store
+	MoneyAI   money.AI // nil = AI features unavailable
 }
 
 // Register mounts all /api routes (every one requires a signed-in Clerk user)
@@ -35,6 +38,10 @@ func Register(app *fiber.App, d Deps) {
 
 	// Stripe calls this directly: no Clerk auth, verified by signature instead.
 	app.Post("/webhooks/stripe", stripeWebhook(d.Billing))
+
+	// Shared loan links: no account, rate-limited by IP. Registered before the
+	// authenticated /api group so its auth check doesn't apply.
+	registerPublicMoney(app, d)
 
 	api := app.Group("/api", auth.Require())
 
@@ -55,6 +62,7 @@ func Register(app *fiber.App, d Deps) {
 	api.Delete("/conversations/:id", deleteConversation(store))
 	api.Delete("/conversations", deleteAllConversations(store))
 	api.Put("/messages/:id/feedback", setFeedback(store))
+	registerMoney(api, d, chatLimiter)
 	api.Get("/billing", getBilling(d))
 	api.Post("/billing/checkout", startCheckout(d.Billing))
 	api.Post("/billing/portal", openPortal(d.Billing))

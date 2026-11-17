@@ -1,10 +1,14 @@
 import { Link, useLocation } from "react-router-dom";
-import { Plus, Settings } from "lucide-react";
+import { HandCoins, Plus, Settings } from "lucide-react";
 import { cn } from "@/lib/utils";
 import ChatHistory from "@/components/chat-history";
 
-// Layout: logo + "New chat" pinned at the top, "Settings" pinned at the
-// bottom, and the chat history scrolling in between.
+// Feature shortcuts shown under "New chat". Add future modules here
+// (e.g. collections, likelemba groups) and they appear in the same list.
+const FEATURES = [{ to: "/money", label: "Money", icon: HandCoins }];
+
+// Layout: logo, "New chat" and feature shortcuts pinned at the top,
+// "Settings" pinned at the bottom, and the chat history scrolling in between.
 const Sidebar = () => {
   const { pathname } = useLocation();
 
@@ -20,13 +24,33 @@ const Sidebar = () => {
             Mayel'AI
           </h1>
         </Link>
-        <Link
-          to="/chat"
-          className="flex w-full items-center justify-center gap-2 rounded-lg bg-primary px-3 py-2.5 text-sm font-medium text-primary-foreground shadow-sm transition hover:opacity-90"
-        >
-          <Plus className="h-4 w-4" />
-          New chat
-        </Link>
+        <div className="space-y-2">
+          {/* New chat: a simple text link */}
+          <Link
+            to="/chat"
+            className="flex w-full items-center gap-2 rounded-lg px-3 py-2 text-sm font-medium text-sidebar-foreground transition hover:bg-sidebar-accent hover:text-sidebar-accent-foreground"
+          >
+            <Plus className="h-4 w-4" />
+            New chat
+          </Link>
+          {/* Feature buttons: the prominent actions */}
+          <nav aria-label="Features" className="space-y-2">
+            {FEATURES.map(({ to, label, icon: Icon }) => (
+              <Link
+                key={to}
+                to={to}
+                aria-current={pathname.startsWith(to) ? "page" : undefined}
+                className={cn(
+                  "flex w-full items-center justify-center gap-2 rounded-lg bg-primary px-3 py-2.5 text-sm font-semibold text-primary-foreground shadow-sm transition hover:opacity-90",
+                  pathname.startsWith(to) && "ring-2 ring-primary/40 ring-offset-2 ring-offset-sidebar"
+                )}
+              >
+                <Icon className="h-5 w-5" />
+                {label}
+              </Link>
+            ))}
+          </nav>
+        </div>
       </div>
 
       {/* Divider */}

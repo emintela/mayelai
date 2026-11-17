@@ -1,5 +1,6 @@
--- Applied automatically on server start. Every statement must be idempotent.
-
+-- Baseline: Mayel'AI's schema before versioned migrations (idempotent, so existing
+-- databases adopt goose without changes).
+-- +goose Up
 CREATE TABLE IF NOT EXISTS conversations (
   id            UUID PRIMARY KEY DEFAULT gen_random_uuid(),
   user_id       TEXT NOT NULL,                 -- Clerk user ID
@@ -65,3 +66,10 @@ CREATE TABLE IF NOT EXISTS subscriptions (
   provider_event_at        TIMESTAMPTZ,             -- newest webhook applied (older, out-of-order events are ignored)
   updated_at               TIMESTAMPTZ NOT NULL DEFAULT now()
 );
+
+-- +goose Down
+DROP TABLE IF EXISTS subscriptions;
+DROP TABLE IF EXISTS response_cache;
+DROP TABLE IF EXISTS usage_daily;
+DROP TABLE IF EXISTS messages;
+DROP TABLE IF EXISTS conversations;

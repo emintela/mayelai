@@ -65,6 +65,9 @@ type ChatRequest struct {
 
 	Temperature      *float64       `json:"temperature,omitempty"`
 	WebSearchOptions map[string]any `json:"web_search_options,omitempty"`
+	// ResponseFormat requests structured output, e.g.
+	// {"type":"json_schema","json_schema":{"name":...,"strict":true,"schema":{...}}}.
+	ResponseFormat map[string]any `json:"response_format,omitempty"`
 }
 
 type Usage struct {

@@ -32,6 +32,20 @@ export function useApi() {
       deleteConversation: (id) => request("delete", conv(id)),
       deleteAllConversations: () => request("delete", "/api/conversations"),
       getUsage: () => request("get", "/api/usage"),
+      // Money (IOU tracker)
+      listLoans: (status) => request("get", "/api/money/loans", { params: status ? { status } : undefined }),
+      createLoan: (loan) => request("post", "/api/money/loans", { data: loan }),
+      parseLoan: (text, today) => request("post", "/api/money/parse", { data: { text, today } }),
+      getLoan: (id) => request("get", `/api/money/loans/${encodeURIComponent(id)}`),
+      updateLoan: (id, patch) => request("patch", `/api/money/loans/${encodeURIComponent(id)}`, { data: patch }),
+      deleteLoan: (id) => request("delete", `/api/money/loans/${encodeURIComponent(id)}`),
+      addPayment: (id, payment) => request("post", `/api/money/loans/${encodeURIComponent(id)}/payments`, { data: payment }),
+      deletePayment: (id, pid) =>
+        request("delete", `/api/money/loans/${encodeURIComponent(id)}/payments/${encodeURIComponent(pid)}`),
+      setLoanStatus: (id, status) => request("post", `/api/money/loans/${encodeURIComponent(id)}/status`, { data: { status } }),
+      rotateLink: (id) => request("post", `/api/money/loans/${encodeURIComponent(id)}/link`),
+      draftReminder: (id, body) => request("post", `/api/money/loans/${encodeURIComponent(id)}/reminders/draft`, { data: body }),
+      logReminder: (id, body) => request("post", `/api/money/loans/${encodeURIComponent(id)}/reminders`, { data: body }),
       getBilling: () => request("get", "/api/billing"),
       startCheckout: () => request("post", "/api/billing/checkout"),
       openPortal: () => request("post", "/api/billing/portal"),
@@ -58,3 +72,14 @@ export function formatPrice(price) {
   const every = price.intervalCount > 1 ? `${price.intervalCount} ${price.interval}s` : price.interval;
   return `${amount} / ${every}`;
 }
+
+// Public loan link (no account): plain requests without a token.
+export const publicLoanApi = {
+  get: (token) => axios.get(`/api/public/loans/${encodeURIComponent(token)}`).then((r) => r.data),
+  respond: (token, response, note) =>
+    axios.post(`/api/public/loans/${encodeURIComponent(token)}/respond`, { response, note }).then((r) => r.data),
+};
+
+// Plain error text (no emoji) for forms.
+export const errorText = (err) =>
+  err?.response?.data?.error || (err?.response ? "Something went wrong. Please try again." : "Couldn't reach Mayel'AI. Check your connection.");

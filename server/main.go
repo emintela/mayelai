@@ -23,6 +23,7 @@ import (
 	"mayelai/server/internal/chat"
 	"mayelai/server/internal/config"
 	"mayelai/server/internal/db"
+	"mayelai/server/internal/money"
 	"mayelai/server/internal/openai"
 	"mayelai/server/internal/routes"
 )
@@ -71,7 +72,14 @@ func main() {
 	if bill == nil {
 		log.Println("billing: Stripe not configured (set STRIPE_SECRET_KEY, STRIPE_WEBHOOK_SECRET, STRIPE_PRO_PRICE_ID)")
 	}
-	routes.Register(app, routes.Deps{Chat: svc, Store: store, Billing: bill, Config: cfg, PerMinute: cfg.PerMinuteLimit})
+	var moneyAI money.AI
+	if cfg.OpenAIKey != "" {
+		moneyAI = &money.OpenAI{Client: openai.New(cfg.OpenAIKey), Model: cfg.ChatModel, ReasoningEffort: cfg.ReasoningEffort}
+	}
+	routes.Register(app, routes.Deps{
+		Chat: svc, Store: store, Billing: bill, Config: cfg, PerMinute: cfg.PerMinuteLimit,
+		Money: money.NewStore(store.Pool()), MoneyAI: moneyAI,
+	})
 
 	if cfg.StaticDir != "" {
 		serveFrontend(app, cfg.StaticDir)

@@ -50,8 +50,11 @@ type Config struct {
 	Free               Limits // daily limits for free users
 	Pro                Limits // daily limits for paying users ("unlimited" with a fair-use cap)
 	PerMinuteLimit     int    // per-user burst limit
-	CacheEnabled       bool   // reuse answers to identical first questions
-	CacheTTL           time.Duration
+	// Family money: open loans allowed per plan (0 = unlimited).
+	FreeOpenLoans int
+	ProOpenLoans  int
+	CacheEnabled  bool // reuse answers to identical first questions
+	CacheTTL      time.Duration
 }
 
 func Load() Config {
@@ -86,6 +89,8 @@ func Load() Config {
 		Free:               Limits{Messages: envInt("FREE_DAILY_MESSAGES", 20), Searches: envInt("FREE_DAILY_SEARCHES", 2)},
 		Pro:                Limits{Messages: envInt("PRO_DAILY_MESSAGES", 300), Searches: envInt("PRO_DAILY_SEARCHES", 30)},
 		PerMinuteLimit:     envInt("PER_MINUTE_LIMIT", 15),
+		FreeOpenLoans:      envInt("FREE_OPEN_LOANS", 3),
+		ProOpenLoans:       envInt("PRO_OPEN_LOANS", 0),
 		CacheEnabled:       env("RESPONSE_CACHE", "true") == "true",
 		CacheTTL:           time.Duration(envInt("RESPONSE_CACHE_TTL_HOURS", 168)) * time.Hour,
 	}
@@ -95,6 +100,14 @@ func Load() Config {
 type Limits struct {
 	Messages int `json:"messages"`
 	Searches int `json:"searches"`
+}
+
+// OpenLoansFor returns the open-loan cap for a plan (0 = unlimited).
+func (c Config) OpenLoansFor(plan string) int {
+	if plan == "pro" {
+		return c.ProOpenLoans
+	}
+	return c.FreeOpenLoans
 }
 
 // LimitsFor returns the limits for a plan ("free" or "pro").
