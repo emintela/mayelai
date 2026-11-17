@@ -57,6 +57,7 @@ func main() {
 		BodyLimit: cfg.MaxAttachments*cfg.MaxAttachmentBytes*4/3 + 256*1024,
 	})
 	app.Use(recover.New())
+	app.Use(canonicalHost(cfg.CanonicalHost, cfg.RedirectHosts))
 	app.Use(compress.New()) // gzip/brotli: smaller responses on slow mobile networks
 	app.Use(cors.New())
 
@@ -137,5 +138,25 @@ func pruneCache(ctx context.Context, store *db.Store, ttl time.Duration) {
 			return
 		case <-t.C:
 		}
+	}
+}
+
+// canonicalHost permanently redirects alias hosts (www, other TLDs) to the
+// main domain, keeping the path and query. Other hosts (fly.dev, localhost,
+// health checks) are served normally.
+func canonicalHost(canonical string, aliases []string) fiber.Handler {
+	alias := map[string]bool{}
+	for _, h := range aliases {
+		alias[strings.ToLower(h)] = true
+	}
+	return func(c fiber.Ctx) error {
+		if canonical == "" || !alias[strings.ToLower(c.Hostname())] {
+			return c.Next()
+		}
+		status := fiber.StatusMovedPermanently
+		if c.Method() != fiber.MethodGet && c.Method() != fiber.MethodHead {
+			status = fiber.StatusPermanentRedirect // keep the method and body
+		}
+		return c.Redirect().Status(status).To("https://" + canonical + c.OriginalURL())
 	}
 }

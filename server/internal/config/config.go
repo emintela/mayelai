@@ -28,6 +28,10 @@ type Config struct {
 	ReasoningEffort string // for reasoning models (gpt-5 family); "" = don't send
 	SystemPrompt    string
 
+	// Main public domain (e.g. "mayelai.com"); requests to RedirectHosts are
+	// redirected there. Empty = no redirects.
+	CanonicalHost     string
+	RedirectHosts     []string
 	ClerkSecretKey    string
 	AuthorizedOrigins []string // allowed values for the token's azp claim; empty = don't check
 
@@ -70,6 +74,8 @@ func Load() Config {
 		ReasoningEffort: env("OPENAI_REASONING_EFFORT", "minimal"),
 		SystemPrompt:    env("SYSTEM_PROMPT", DefaultSystemPrompt),
 
+		CanonicalHost:     strings.ToLower(os.Getenv("CANONICAL_HOST")),
+		RedirectHosts:     list(os.Getenv("REDIRECT_HOSTS")),
 		ClerkSecretKey:    os.Getenv("CLERK_SECRET_KEY"),
 		AuthorizedOrigins: list(os.Getenv("CLERK_AUTHORIZED_PARTIES")),
 

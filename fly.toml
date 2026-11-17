@@ -2,6 +2,11 @@
 app = "mayelai"
 primary_region = "fra" # same region as the Neon database (aws-eu-central-1)
 
+# Non-secret settings. www, .app and .org redirect to the main domain.
+[env]
+  CANONICAL_HOST = "mayelai.com"
+  REDIRECT_HOSTS = "www.mayelai.com,mayelai.app,www.mayelai.app,mayelai.org,www.mayelai.org"
+
 [build]
   dockerfile = "Dockerfile"
 
