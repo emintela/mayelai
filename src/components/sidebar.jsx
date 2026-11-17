@@ -1,11 +1,14 @@
 import { Link, useLocation } from "react-router-dom";
-import { HandCoins, Plus, Settings } from "lucide-react";
+import { HandCoins, HeartHandshake, Plus, Settings } from "lucide-react";
 import { cn } from "@/lib/utils";
 import ChatHistory from "@/components/chat-history";
 
 // Feature shortcuts shown under "New chat". Add future modules here
 // (e.g. collections, likelemba groups) and they appear in the same list.
-const FEATURES = [{ to: "/money", label: "Money", icon: HandCoins }];
+const FEATURES = [
+  { to: "/money", label: "Money", icon: HandCoins },
+  { to: "/collections", label: "Collections", icon: HeartHandshake },
+];
 
 // Layout: logo, "New chat" and feature shortcuts pinned at the top,
 // "Settings" pinned at the bottom, and the chat history scrolling in between.

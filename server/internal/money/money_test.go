@@ -55,3 +55,11 @@ func TestSanitizeDraft(t *testing.T) {
 		t.Fatalf("sanitize: %+v", d)
 	}
 }
+
+func TestLooksLike(t *testing.T) {
+	fr := "Bonjour à tous, nous avons reçu 850 $ pour la collecte. Merci pour votre soutien."
+	en := "Hi everyone, we have received $850 for the collection. Thank you for your support."
+	if !looksLike(fr, "fr") || looksLike(fr, "en") || !looksLike(en, "en") || looksLike(en, "fr") {
+		t.Fatal("language guard")
+	}
+}

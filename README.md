@@ -59,6 +59,15 @@ Track money lent to or borrowed from friends and family, under **Money** in the 
 - USD, EUR and CAD. Free plan: 3 open loans (`FREE_OPEN_LOANS`); Pro: unlimited.
 - Mayel'AI never holds or moves money.
 
+### Collections (family events)
+
+Under **Collections**: gather contributions for a *matanga*, wedding, birth or medical emergency.
+
+- The organizer shares one link (`/c/<token>`) in the family WhatsApp group; anyone can pledge without an account, say they already sent the money, and hide their name or amount.
+- The organizer marks contributions as received, adds cash contributions by hand, and sends AI-written personal reminders or group updates (English/French).
+- The public page shows the total received and promised and the list of givers; phone numbers are only visible to the organizer.
+- Free plan: 1 open collection (`FREE_OPEN_COLLECTIONS`); Pro: unlimited.
+
 The schema lives in `server/migrations/` (goose, tracked in the `mayelai_migrations` table) and is applied automatically when the server starts.
 
 ## Billing (Stripe)

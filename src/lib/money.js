@@ -61,3 +61,6 @@ export function whatsappURL(phone, text) {
 export function smsURL(phone, text) {
   return `sms:${(phone || "").replace(/[^0-9+]/g, "")}?body=${encodeURIComponent(text)}`;
 }
+
+export const collectionLink = (token) => `${window.location.origin}/c/${token}`;
+export const KINDS = ["funeral", "wedding", "birth", "medical", "other"];

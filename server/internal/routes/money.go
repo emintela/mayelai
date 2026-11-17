@@ -51,6 +51,7 @@ func registerMoney(api fiber.Router, d Deps, aiLimiter fiber.Handler) {
 	m.Post("/loans/:id/link", rotateLink(d))
 	m.Post("/loans/:id/reminders/draft", aiLimiter, draftReminder(d))
 	m.Post("/loans/:id/reminders", logReminder(d))
+	registerCollections(m, d, aiLimiter)
 }
 
 func registerPublicMoney(app *fiber.App, d Deps) {
@@ -86,6 +87,7 @@ func registerPublicMoney(app *fiber.App, d Deps) {
 		}
 		return c.JSON(l)
 	})
+	registerPublicCollections(app, d)
 }
 
 // ---------- helpers ----------
@@ -101,11 +103,11 @@ func moneyError(c fiber.Ctx, err error) error {
 	case errors.Is(err, money.ErrState):
 		return jsonError(c, fiber.StatusConflict, "This can't be done in the loan's current state.")
 	case errors.As(err, &le):
-		return c.Status(fiber.StatusForbidden).JSON(fiber.Map{
-			"error":   "You've reached the free plan's limit of open loans. Upgrade to Pro for unlimited loans, or close a loan first.",
-			"code":    "limit_loans",
-			"upgrade": true,
-		})
+		msg := "You've reached the free plan's limit of open loans. Upgrade to Pro for unlimited loans, or close a loan first."
+		if le.Kind == "collections" {
+			msg = "The free plan allows one open collection at a time. Upgrade to Pro for unlimited collections, or close the current one first."
+		}
+		return c.Status(fiber.StatusForbidden).JSON(fiber.Map{"error": msg, "code": "limit_" + le.Kind, "upgrade": true})
 	case errors.Is(err, money.ErrAIUnusable):
 		return jsonError(c, fiber.StatusUnprocessableEntity, "The assistant couldn't understand that. Please fill in the form instead.")
 	}

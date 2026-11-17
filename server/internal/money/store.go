@@ -75,7 +75,7 @@ func (s *Store) Create(ctx context.Context, owner string, n NewLoan, today time.
 			return nil, err
 		}
 		if open >= maxOpen {
-			return nil, &LimitError{Max: maxOpen}
+			return nil, &LimitError{Max: maxOpen, Kind: "loans"}
 		}
 	}
 	var dueOn *time.Time
@@ -98,10 +98,13 @@ func (s *Store) Create(ctx context.Context, owner string, n NewLoan, today time.
 	return s.Get(ctx, owner, id)
 }
 
-// LimitError means the free plan's open-loan limit was reached.
-type LimitError struct{ Max int }
+// LimitError means a free-plan limit was reached. Kind is "loans" or "collections".
+type LimitError struct {
+	Max  int
+	Kind string
+}
 
-func (e *LimitError) Error() string { return "open loan limit reached" }
+func (e *LimitError) Error() string { return "open " + e.Kind + " limit reached" }
 
 // List returns the owner's loans: status "open", "closed" (paid/forgiven/cancelled) or "" for all.
 func (s *Store) List(ctx context.Context, owner, status string) ([]Loan, error) {
@@ -377,7 +380,7 @@ func (s *Store) SetStatus(ctx context.Context, owner string, id uuid.UUID, statu
 				return nil, err
 			}
 			if open >= maxOpen {
-				return nil, &LimitError{Max: maxOpen}
+				return nil, &LimitError{Max: maxOpen, Kind: "loans"}
 			}
 		}
 		_, err = tx.Exec(ctx, `UPDATE money_loans SET status = 'open', closed_at = NULL, updated_at = now() WHERE id = $1`, id)

@@ -46,6 +46,25 @@ export function useApi() {
       rotateLink: (id) => request("post", `/api/money/loans/${encodeURIComponent(id)}/link`),
       draftReminder: (id, body) => request("post", `/api/money/loans/${encodeURIComponent(id)}/reminders/draft`, { data: body }),
       logReminder: (id, body) => request("post", `/api/money/loans/${encodeURIComponent(id)}/reminders`, { data: body }),
+      // Collections (family events)
+      listCollections: () => request("get", "/api/money/collections"),
+      createCollection: (c) => request("post", "/api/money/collections", { data: c }),
+      getCollection: (id) => request("get", `/api/money/collections/${encodeURIComponent(id)}`),
+      updateCollection: (id, patch) => request("patch", `/api/money/collections/${encodeURIComponent(id)}`, { data: patch }),
+      deleteCollection: (id) => request("delete", `/api/money/collections/${encodeURIComponent(id)}`),
+      setCollectionStatus: (id, status) =>
+        request("post", `/api/money/collections/${encodeURIComponent(id)}/status`, { data: { status } }),
+      rotateCollectionLink: (id) => request("post", `/api/money/collections/${encodeURIComponent(id)}/link`),
+      addContribution: (id, c) => request("post", `/api/money/collections/${encodeURIComponent(id)}/contributions`, { data: c }),
+      setContributionStatus: (id, cid, status) =>
+        request("post", `/api/money/collections/${encodeURIComponent(id)}/contributions/${encodeURIComponent(cid)}/status`, {
+          data: { status },
+        }),
+      deleteContribution: (id, cid) =>
+        request("delete", `/api/money/collections/${encodeURIComponent(id)}/contributions/${encodeURIComponent(cid)}`),
+      markReminded: (id, cid) =>
+        request("post", `/api/money/collections/${encodeURIComponent(id)}/contributions/${encodeURIComponent(cid)}/reminded`),
+      collectionDraft: (id, body) => request("post", `/api/money/collections/${encodeURIComponent(id)}/draft`, { data: body }),
       getBilling: () => request("get", "/api/billing"),
       startCheckout: () => request("post", "/api/billing/checkout"),
       openPortal: () => request("post", "/api/billing/portal"),
@@ -78,6 +97,11 @@ export const publicLoanApi = {
   get: (token) => axios.get(`/api/public/loans/${encodeURIComponent(token)}`).then((r) => r.data),
   respond: (token, response, note) =>
     axios.post(`/api/public/loans/${encodeURIComponent(token)}/respond`, { response, note }).then((r) => r.data),
+};
+
+export const publicCollectionApi = {
+  get: (token) => axios.get(`/api/public/collections/${encodeURIComponent(token)}`).then((r) => r.data),
+  pledge: (token, c) => axios.post(`/api/public/collections/${encodeURIComponent(token)}/pledge`, c).then((r) => r.data),
 };
 
 // Plain error text (no emoji) for forms.

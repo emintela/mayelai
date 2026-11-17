@@ -57,8 +57,11 @@ type Config struct {
 	// Family money: open loans allowed per plan (0 = unlimited).
 	FreeOpenLoans int
 	ProOpenLoans  int
-	CacheEnabled  bool // reuse answers to identical first questions
-	CacheTTL      time.Duration
+	// Collections (family events): open collections allowed per plan (0 = unlimited).
+	FreeOpenCollections int
+	ProOpenCollections  int
+	CacheEnabled        bool // reuse answers to identical first questions
+	CacheTTL            time.Duration
 }
 
 func Load() Config {
@@ -84,21 +87,23 @@ func Load() Config {
 		StripeWebhookSecret: os.Getenv("STRIPE_WEBHOOK_SECRET"),
 		StripeProPriceID:    os.Getenv("STRIPE_PRO_PRICE_ID"),
 
-		MaxOutputTokens:    envInt("MAX_OUTPUT_TOKENS", 1200),
-		MaxInputChars:      envInt("MAX_INPUT_CHARS", 4000),
-		MaxAttachments:     envInt("MAX_ATTACHMENTS", 5),
-		MaxAttachmentBytes: envInt("MAX_ATTACHMENT_MB", 8) << 20,
-		MaxAttachmentChars: envInt("MAX_ATTACHMENT_CHARS", 30000),
-		ImageDetail:        env("IMAGE_DETAIL", "auto"),
-		HistoryMessages:    envInt("HISTORY_MESSAGES", 10),
-		SummaryBatch:       envInt("SUMMARY_BATCH", 10),
-		Free:               Limits{Messages: envInt("FREE_DAILY_MESSAGES", 20), Searches: envInt("FREE_DAILY_SEARCHES", 2)},
-		Pro:                Limits{Messages: envInt("PRO_DAILY_MESSAGES", 300), Searches: envInt("PRO_DAILY_SEARCHES", 30)},
-		PerMinuteLimit:     envInt("PER_MINUTE_LIMIT", 15),
-		FreeOpenLoans:      envInt("FREE_OPEN_LOANS", 3),
-		ProOpenLoans:       envInt("PRO_OPEN_LOANS", 0),
-		CacheEnabled:       env("RESPONSE_CACHE", "true") == "true",
-		CacheTTL:           time.Duration(envInt("RESPONSE_CACHE_TTL_HOURS", 168)) * time.Hour,
+		MaxOutputTokens:     envInt("MAX_OUTPUT_TOKENS", 1200),
+		MaxInputChars:       envInt("MAX_INPUT_CHARS", 4000),
+		MaxAttachments:      envInt("MAX_ATTACHMENTS", 5),
+		MaxAttachmentBytes:  envInt("MAX_ATTACHMENT_MB", 8) << 20,
+		MaxAttachmentChars:  envInt("MAX_ATTACHMENT_CHARS", 30000),
+		ImageDetail:         env("IMAGE_DETAIL", "auto"),
+		HistoryMessages:     envInt("HISTORY_MESSAGES", 10),
+		SummaryBatch:        envInt("SUMMARY_BATCH", 10),
+		Free:                Limits{Messages: envInt("FREE_DAILY_MESSAGES", 20), Searches: envInt("FREE_DAILY_SEARCHES", 2)},
+		Pro:                 Limits{Messages: envInt("PRO_DAILY_MESSAGES", 300), Searches: envInt("PRO_DAILY_SEARCHES", 30)},
+		PerMinuteLimit:      envInt("PER_MINUTE_LIMIT", 15),
+		FreeOpenLoans:       envInt("FREE_OPEN_LOANS", 3),
+		ProOpenLoans:        envInt("PRO_OPEN_LOANS", 0),
+		FreeOpenCollections: envInt("FREE_OPEN_COLLECTIONS", 1),
+		ProOpenCollections:  envInt("PRO_OPEN_COLLECTIONS", 0),
+		CacheEnabled:        env("RESPONSE_CACHE", "true") == "true",
+		CacheTTL:            time.Duration(envInt("RESPONSE_CACHE_TTL_HOURS", 168)) * time.Hour,
 	}
 }
 
@@ -114,6 +119,14 @@ func (c Config) OpenLoansFor(plan string) int {
 		return c.ProOpenLoans
 	}
 	return c.FreeOpenLoans
+}
+
+// OpenCollectionsFor returns the open-collection cap for a plan (0 = unlimited).
+func (c Config) OpenCollectionsFor(plan string) int {
+	if plan == "pro" {
+		return c.ProOpenCollections
+	}
+	return c.FreeOpenCollections
 }
 
 // LimitsFor returns the limits for a plan ("free" or "pro").
