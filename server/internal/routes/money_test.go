@@ -41,6 +41,14 @@ func (f *fakeAI) CollectionDraft(ctx context.Context, in money.CollectionInput) 
 	return fmt.Sprintf("[%s] %s received of %s from %d", in.Language, in.Received, in.PledgedTotal, in.Givers), money.Usage{}, nil
 }
 
+func (f *fakeAI) GroupDraft(ctx context.Context, in money.GroupInput) (string, money.Usage, error) {
+	f.calls++
+	if in.Purpose == "reminder" {
+		return fmt.Sprintf("[%s] %s pay %s round %d", in.Language, in.Person, in.Amount, in.Round), money.Usage{}, nil
+	}
+	return fmt.Sprintf("[%s] round %d: %d/%d paid, pot to %s", in.Language, in.Round, in.Paid, in.Members, in.Recipient), money.Usage{}, nil
+}
+
 func moneyApp(t *testing.T, freeLimit int, msgLimit int) (*fiber.App, *fakeAI, *db.Store) {
 	_, url := testdb.New(t)
 	ctx := context.Background()
@@ -50,7 +58,7 @@ func moneyApp(t *testing.T, freeLimit int, msgLimit int) (*fiber.App, *fakeAI, *
 	}
 	t.Cleanup(store.Close)
 	ai := &fakeAI{}
-	cfg := config.Config{FreeOpenLoans: freeLimit, FreeOpenCollections: freeLimit, Free: config.Limits{Messages: msgLimit}}
+	cfg := config.Config{FreeOpenLoans: freeLimit, FreeOpenCollections: freeLimit, FreeActiveGroups: freeLimit, Free: config.Limits{Messages: msgLimit}}
 	d := Deps{Store: store, Config: cfg, Money: money.NewStore(store.Pool()), MoneyAI: ai}
 
 	app := fiber.New()

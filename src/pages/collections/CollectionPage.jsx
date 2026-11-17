@@ -1,68 +1,24 @@
 import { useCallback, useEffect, useState } from "react";
 import { Link, useNavigate, useParams } from "react-router-dom";
-import { ArrowLeft, BellRing, Link2, Loader2, Megaphone, RefreshCw, Sparkles, Trash2 } from "lucide-react";
+import { ArrowLeft, BellRing, Link2, Loader2, Megaphone, RefreshCw, Trash2 } from "lucide-react";
 import { errorText, useApi } from "@/lib/api";
 import { useLang, useT } from "@/lib/i18n";
 import { METHODS, collectionLink, formatDate, formatMoney } from "@/lib/money";
 import { cn } from "@/lib/utils";
-import { Card, LangSwitch, SendButtons, inputCls, labelCls } from "@/pages/money/parts";
+import { AIDraftBox, Card, LangSwitch, SendButtons, inputCls, labelCls } from "@/pages/money/parts";
 import { ContributionBadge, Progress } from "./parts";
 
-// AI-written message box (group update or a personal reminder) with send buttons.
+// AI-written message (group update or personal reminder) for a collection.
 function DraftBox({ col, purpose, contribution, phone, onSent, onClose }) {
   const api = useApi();
-  const t = useT();
-  const lang = useLang();
-  const [language, setLanguage] = useState(lang);
-  const [message, setMessage] = useState("");
-  const [busy, setBusy] = useState(false);
-  const [error, setError] = useState(null);
-  const link = collectionLink(col.share_token);
-  const full = message ? (col.status === "open" ? `${message}\n${link}` : message) : "";
-
-  const write = async () => {
-    setBusy(true);
-    setError(null);
-    try {
-      const r = await api.collectionDraft(col.id, { purpose, language, contribution_id: contribution?.id });
-      setMessage(r.message);
-    } catch (err) {
-      setError(errorText(err));
-    } finally {
-      setBusy(false);
-    }
-  };
-
   return (
-    <div className="space-y-2">
-      <div className="flex flex-wrap gap-2">
-        <select value={language} onChange={(e) => setLanguage(e.target.value)} className={cn(inputCls, "w-auto")} aria-label={t("reminderLanguage")}>
-          <option value="fr">Français</option>
-          <option value="en">English</option>
-          <option value="ln" disabled>{t("lingalaSoon")}</option>
-        </select>
-        <button
-          onClick={write}
-          disabled={busy}
-          className="inline-flex items-center gap-1.5 rounded-full bg-primary px-4 py-2 text-sm font-medium text-primary-foreground hover:opacity-90 disabled:opacity-60"
-        >
-          {busy ? <Loader2 className="h-4 w-4 animate-spin" /> : <Sparkles className="h-4 w-4" />}
-          {busy ? t("writing") : t("writeWithAi")}
-        </button>
-        {onClose && (
-          <button onClick={onClose} className="text-sm text-muted-foreground hover:text-foreground">
-            {t("cancel")}
-          </button>
-        )}
-      </div>
-      {error && <p className="text-sm text-rose-600">{error}</p>}
-      {message && (
-        <>
-          <textarea value={message} onChange={(e) => setMessage(e.target.value)} rows={4} maxLength={900} className={cn(inputCls, "resize-y")} />
-          <SendButtons phone={phone} text={full} onSent={onSent} />
-        </>
-      )}
-    </div>
+    <AIDraftBox
+      fetchDraft={(language) => api.collectionDraft(col.id, { purpose, language, contribution_id: contribution?.id })}
+      link={col.status === "open" ? collectionLink(col.share_token) : ""}
+      phone={phone}
+      onSent={onSent}
+      onClose={onClose}
+    />
   );
 }
 

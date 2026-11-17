@@ -1,6 +1,7 @@
 import { useState } from "react";
-import { Check, Copy, MessageCircle, MessageSquareText } from "lucide-react";
+import { Check, Copy, Loader2, MessageCircle, MessageSquareText, Sparkles } from "lucide-react";
 import { setLang, useLang, useT } from "@/lib/i18n";
+import { errorText } from "@/lib/api";
 import { smsURL, whatsappURL } from "@/lib/money";
 import { cn } from "@/lib/utils";
 
@@ -112,3 +113,60 @@ export function SendButtons({ phone, text, onSent, disabled }) {
 export const inputCls =
   "w-full rounded-xl border border-input bg-background px-3 py-2.5 text-base outline-none transition focus:ring-2 focus:ring-primary/30 md:text-sm";
 export const labelCls = "mb-1 block text-xs font-medium text-muted-foreground";
+
+// AI message composer: pick a language, let the assistant write, edit, send
+// from your own WhatsApp/SMS. fetchDraft(language) must return { message }.
+// link (optional) is appended on its own line.
+export function AIDraftBox({ fetchDraft, link, phone, onSent, onClose }) {
+  const t = useT();
+  const lang = useLang();
+  const [language, setLanguage] = useState(lang);
+  const [message, setMessage] = useState("");
+  const [busy, setBusy] = useState(false);
+  const [error, setError] = useState(null);
+  const full = message ? (link ? `${message}\n${link}` : message) : "";
+
+  const write = async () => {
+    setBusy(true);
+    setError(null);
+    try {
+      setMessage((await fetchDraft(language)).message);
+    } catch (err) {
+      setError(errorText(err));
+    } finally {
+      setBusy(false);
+    }
+  };
+
+  return (
+    <div className="space-y-2">
+      <div className="flex flex-wrap gap-2">
+        <select value={language} onChange={(e) => setLanguage(e.target.value)} className={cn(inputCls, "w-auto")} aria-label={t("reminderLanguage")}>
+          <option value="fr">Français</option>
+          <option value="en">English</option>
+          <option value="ln" disabled>{t("lingalaSoon")}</option>
+        </select>
+        <button
+          onClick={write}
+          disabled={busy}
+          className="inline-flex items-center gap-1.5 rounded-full bg-primary px-4 py-2 text-sm font-medium text-primary-foreground hover:opacity-90 disabled:opacity-60"
+        >
+          {busy ? <Loader2 className="h-4 w-4 animate-spin" /> : <Sparkles className="h-4 w-4" />}
+          {busy ? t("writing") : t("writeWithAi")}
+        </button>
+        {onClose && (
+          <button onClick={onClose} className="text-sm text-muted-foreground hover:text-foreground">
+            {t("cancel")}
+          </button>
+        )}
+      </div>
+      {error && <p className="text-sm text-rose-600">{error}</p>}
+      {message && (
+        <>
+          <textarea value={message} onChange={(e) => setMessage(e.target.value)} rows={4} maxLength={900} className={cn(inputCls, "resize-y")} />
+          <SendButtons phone={phone} text={full} onSent={onSent} />
+        </>
+      )}
+    </div>
+  );
+}

@@ -68,6 +68,16 @@ Under **Collections**: gather contributions for a *matanga*, wedding, birth or m
 - The public page shows the total received and promised and the list of givers; phone numbers are only visible to the organizer.
 - Free plan: 1 open collection (`FREE_OPEN_COLLECTIONS`); Pro: unlimited.
 
+### Likelemba (rotating savings groups)
+
+Under **Likelemba**: each round every member pays the same amount and one member receives the pot.
+
+- The organizer creates the group (amount, weekly / every 2 weeks / monthly, rules), adds members or shares a join link (`/g/<token>`), and sets the payout order by hand or with a random draw.
+- Starting fixes the calendar (monthly dates keep the day, clamped to month end). Each member gets a personal link to say "I paid"; the organizer confirms "received" and "pot handed over". The group completes when every round is paid out.
+- Everyone with the link sees the schedule and who has paid this round; phones and personal links are organizer-only.
+- AI-written reminders (to one unpaid member) and round updates (never naming who hasn't paid), English/French.
+- Free plan: 1 forming/active group (`FREE_ACTIVE_GROUPS`); Pro: unlimited.
+
 The schema lives in `server/migrations/` (goose, tracked in the `mayelai_migrations` table) and is applied automatically when the server starts.
 
 ## Billing (Stripe)

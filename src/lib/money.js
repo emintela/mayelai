@@ -64,3 +64,5 @@ export function smsURL(phone, text) {
 
 export const collectionLink = (token) => `${window.location.origin}/c/${token}`;
 export const KINDS = ["funeral", "wedding", "birth", "medical", "other"];
+export const groupLink = (token, memberToken) => `${window.location.origin}/g/${token}${memberToken ? `?m=${memberToken}` : ""}`;
+export const FREQUENCIES = ["monthly", "biweekly", "weekly"];

@@ -65,6 +65,14 @@ export function useApi() {
       markReminded: (id, cid) =>
         request("post", `/api/money/collections/${encodeURIComponent(id)}/contributions/${encodeURIComponent(cid)}/reminded`),
       collectionDraft: (id, body) => request("post", `/api/money/collections/${encodeURIComponent(id)}/draft`, { data: body }),
+      // Likelemba groups
+      listGroups: () => request("get", "/api/money/groups"),
+      createGroup: (body) => request("post", "/api/money/groups", { data: body }),
+      getGroup: (id) => request("get", `/api/money/groups/${encodeURIComponent(id)}`),
+      updateGroup: (id, patch) => request("patch", `/api/money/groups/${encodeURIComponent(id)}`, { data: patch }),
+      deleteGroup: (id) => request("delete", `/api/money/groups/${encodeURIComponent(id)}`),
+      groupAction: (id, action, body) => request("post", `/api/money/groups/${encodeURIComponent(id)}/${action}`, { data: body }),
+      removeMember: (id, mid) => request("delete", `/api/money/groups/${encodeURIComponent(id)}/members/${encodeURIComponent(mid)}`),
       getBilling: () => request("get", "/api/billing"),
       startCheckout: () => request("post", "/api/billing/checkout"),
       openPortal: () => request("post", "/api/billing/portal"),
@@ -102,6 +110,17 @@ export const publicLoanApi = {
 export const publicCollectionApi = {
   get: (token) => axios.get(`/api/public/collections/${encodeURIComponent(token)}`).then((r) => r.data),
   pledge: (token, c) => axios.post(`/api/public/collections/${encodeURIComponent(token)}/pledge`, c).then((r) => r.data),
+};
+
+const memberHeader = (memberToken) => (memberToken ? { headers: { "X-Member-Token": memberToken } } : {});
+export const publicGroupApi = {
+  get: (token, memberToken) =>
+    axios.get(`/api/public/groups/${encodeURIComponent(token)}`, memberHeader(memberToken)).then((r) => r.data),
+  join: (token, body) => axios.post(`/api/public/groups/${encodeURIComponent(token)}/join`, body).then((r) => r.data),
+  paid: (token, memberToken, round, method) =>
+    axios
+      .post(`/api/public/groups/${encodeURIComponent(token)}/paid`, { round, method }, memberHeader(memberToken))
+      .then((r) => r.data),
 };
 
 // Plain error text (no emoji) for forms.

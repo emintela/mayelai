@@ -52,6 +52,7 @@ func registerMoney(api fiber.Router, d Deps, aiLimiter fiber.Handler) {
 	m.Post("/loans/:id/reminders/draft", aiLimiter, draftReminder(d))
 	m.Post("/loans/:id/reminders", logReminder(d))
 	registerCollections(m, d, aiLimiter)
+	registerGroups(m, d, aiLimiter)
 }
 
 func registerPublicMoney(app *fiber.App, d Deps) {
@@ -88,6 +89,7 @@ func registerPublicMoney(app *fiber.App, d Deps) {
 		return c.JSON(l)
 	})
 	registerPublicCollections(app, d)
+	registerPublicGroups(app, d)
 }
 
 // ---------- helpers ----------
@@ -104,6 +106,9 @@ func moneyError(c fiber.Ctx, err error) error {
 		return jsonError(c, fiber.StatusConflict, "This can't be done in the loan's current state.")
 	case errors.As(err, &le):
 		msg := "You've reached the free plan's limit of open loans. Upgrade to Pro for unlimited loans, or close a loan first."
+		if le.Kind == "groups" {
+			msg = "The free plan allows one likelemba group at a time. Upgrade to Pro for unlimited groups."
+		}
 		if le.Kind == "collections" {
 			msg = "The free plan allows one open collection at a time. Upgrade to Pro for unlimited collections, or close the current one first."
 		}

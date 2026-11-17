@@ -63,3 +63,22 @@ func TestLooksLike(t *testing.T) {
 		t.Fatal("language guard")
 	}
 }
+
+func TestRoundDate(t *testing.T) {
+	d := func(s string) time.Time { t, _ := time.Parse("2006-01-02", s); return t }
+	start := d("2027-01-31")
+	cases := []struct {
+		freq string
+		n    int
+		want string
+	}{
+		{"monthly", 1, "2027-01-31"}, {"monthly", 2, "2027-02-28"}, {"monthly", 3, "2027-03-31"},
+		{"monthly", 4, "2027-04-30"}, {"monthly", 13, "2028-01-31"}, {"monthly", 14, "2028-02-29"},
+		{"weekly", 2, "2027-02-07"}, {"biweekly", 3, "2027-02-28"},
+	}
+	for _, c := range cases {
+		if got := RoundDate(start, c.freq, c.n).Format("2006-01-02"); got != c.want {
+			t.Errorf("%s round %d: %s, want %s", c.freq, c.n, got, c.want)
+		}
+	}
+}

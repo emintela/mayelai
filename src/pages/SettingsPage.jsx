@@ -229,12 +229,12 @@ const SettingsPage = () => {
             {!isPro && (
               <Card title="Upgrade">
                 <div className="grid gap-4 sm:grid-cols-2">
-                  <PlanColumn name="Free" price="$0" limits={billing.limits.free} features={["Chat history", "Up to 3 open loans in Money", "1 open collection"]} />
+                  <PlanColumn name="Free" price="$0" limits={billing.limits.free} features={["Chat history", "Up to 3 open loans in Money", "1 open collection", "1 likelemba group"]} />
                   <PlanColumn
                     name="Pro"
                     price={price}
                     limits={billing.limits.pro}
-                    features={["Chat history", "Unlimited loans in Money", "Unlimited collections", "Cancel anytime"]}
+                    features={["Chat history", "Unlimited loans in Money", "Unlimited collections", "Unlimited likelemba groups", "Cancel anytime"]}
                     highlight
                   >
                     {billing.enabled ? (

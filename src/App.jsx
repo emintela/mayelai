@@ -14,6 +14,10 @@ import CollectionsPage from "@/pages/collections/CollectionsPage";
 import NewCollectionPage from "@/pages/collections/NewCollectionPage";
 import CollectionPage from "@/pages/collections/CollectionPage";
 import PublicCollectionPage from "@/pages/collections/PublicCollectionPage";
+import GroupsPage from "@/pages/groups/GroupsPage";
+import NewGroupPage from "@/pages/groups/NewGroupPage";
+import GroupPage from "@/pages/groups/GroupPage";
+import PublicGroupPage from "@/pages/groups/PublicGroupPage";
 
 function App() {
   return (
@@ -25,6 +29,7 @@ function App() {
         {/* Shared loan link: public, no account */}
         <Route path="/l/:token" element={<PublicLoanPage />} />
         <Route path="/c/:token" element={<PublicCollectionPage />} />
+        <Route path="/g/:token" element={<PublicGroupPage />} />
         <Route element={<ProtectedLayout />}>
           <Route path="/dashboard" element={<Navigate to="/chat" replace />} />
           {/* One route with an optional id so the page isn't remounted when a new chat gets its URL */}
@@ -36,6 +41,9 @@ function App() {
           <Route path="/collections" element={<CollectionsPage />} />
           <Route path="/collections/new" element={<NewCollectionPage />} />
           <Route path="/collections/:id" element={<CollectionPage />} />
+          <Route path="/likelemba" element={<GroupsPage />} />
+          <Route path="/likelemba/new" element={<NewGroupPage />} />
+          <Route path="/likelemba/:id" element={<GroupPage />} />
           <Route path="/settings" element={<SettingsPage />} />
         </Route>
       </Routes>

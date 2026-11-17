@@ -60,8 +60,11 @@ type Config struct {
 	// Collections (family events): open collections allowed per plan (0 = unlimited).
 	FreeOpenCollections int
 	ProOpenCollections  int
-	CacheEnabled        bool // reuse answers to identical first questions
-	CacheTTL            time.Duration
+	// Likelemba groups (forming or active) allowed per plan (0 = unlimited).
+	FreeActiveGroups int
+	ProActiveGroups  int
+	CacheEnabled     bool // reuse answers to identical first questions
+	CacheTTL         time.Duration
 }
 
 func Load() Config {
@@ -102,6 +105,8 @@ func Load() Config {
 		ProOpenLoans:        envInt("PRO_OPEN_LOANS", 0),
 		FreeOpenCollections: envInt("FREE_OPEN_COLLECTIONS", 1),
 		ProOpenCollections:  envInt("PRO_OPEN_COLLECTIONS", 0),
+		FreeActiveGroups:    envInt("FREE_ACTIVE_GROUPS", 1),
+		ProActiveGroups:     envInt("PRO_ACTIVE_GROUPS", 0),
 		CacheEnabled:        env("RESPONSE_CACHE", "true") == "true",
 		CacheTTL:            time.Duration(envInt("RESPONSE_CACHE_TTL_HOURS", 168)) * time.Hour,
 	}
@@ -127,6 +132,14 @@ func (c Config) OpenCollectionsFor(plan string) int {
 		return c.ProOpenCollections
 	}
 	return c.FreeOpenCollections
+}
+
+// ActiveGroupsFor returns the likelemba group cap for a plan (0 = unlimited).
+func (c Config) ActiveGroupsFor(plan string) int {
+	if plan == "pro" {
+		return c.ProActiveGroups
+	}
+	return c.FreeActiveGroups
 }
 
 // LimitsFor returns the limits for a plan ("free" or "pro").
