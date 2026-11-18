@@ -1,18 +1,28 @@
 import { useEffect, useState } from "react";
 import { Navigate, NavLink, Outlet, useLocation } from "react-router-dom";
 import { SignedIn, SignedOut } from "@clerk/clerk-react";
-import { Activity, Home, Plus, User, Users } from "lucide-react";
+import { HandCoins, Home, Plus, User, Users } from "lucide-react";
 import { useApi } from "@/lib/api";
 import { useT } from "@/lib/i18n";
 import { cn } from "@/lib/utils";
 import { claimRemembered } from "./memberStore";
 import { Spinner, useOnSaveChrome } from "./ui";
 
-// Full-screen flows (paying, creating a group) hide the tab bar.
-const fullScreen = (path) => /^\/onsave\/(new|groups\/[^/]+\/pay)\/?$/.test(path);
+// Full-screen flows (paying, creating a group, loan or collection) hide the tab bar.
+const fullScreen = (path) => /^\/onsave\/(new|groups\/[^/]+\/pay|money\/new|collections\/new)\/?$/.test(path);
+
+// The + button creates whatever the current section is about.
+function plusFor(path, t) {
+  if (path.startsWith("/onsave/money")) return ["/onsave/money/new", t("osNewLoan")];
+  if (path.startsWith("/onsave/collections")) return ["/onsave/collections/new", t("osNewCollection")];
+  return ["/onsave/new", t("osNewGroup")];
+}
 
 function TabBar() {
   const t = useT();
+  const { pathname } = useLocation();
+  const [plusTo, plusLabel] = plusFor(pathname, t);
+  const inMoney = /^\/onsave\/(money|collections)/.test(pathname);
   const tab = ({ isActive }) =>
     cn(
       "flex w-16 flex-col items-center gap-1 rounded-xl py-1 text-[11px] font-medium transition",
@@ -34,15 +44,15 @@ function TabBar() {
           {t("osGroups")}
         </NavLink>
         <NavLink
-          to="/onsave/new"
-          aria-label={t("osNewGroup")}
+          to={plusTo}
+          aria-label={plusLabel}
           className="-mt-1 inline-flex h-13 w-13 items-center justify-center rounded-full bg-os-btn text-white shadow-[0_8px_20px_rgba(90,63,212,0.35)] transition active:scale-95"
         >
           <Plus className="h-6 w-6" strokeWidth={2.4} aria-hidden="true" />
         </NavLink>
-        <NavLink to="/onsave/activity" className={tab}>
-          <Activity className="h-[22px] w-[22px]" aria-hidden="true" />
-          {t("osActivity")}
+        <NavLink to="/onsave/money" className={(p) => tab({ isActive: p.isActive || inMoney })}>
+          <HandCoins className="h-[22px] w-[22px]" aria-hidden="true" />
+          {t("money")}
         </NavLink>
         <NavLink to="/onsave/me" className={tab}>
           <User className="h-[22px] w-[22px]" aria-hidden="true" />

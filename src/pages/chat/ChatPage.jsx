@@ -325,7 +325,7 @@ const ChatPage = () => {
   return (
     <div className="flex h-full flex-col">
       <Heading
-        title="💬 AI Chat"
+        title="AI Chat"
         description="Mayel'AI — Advanced AI Chat with Web Search"
         icon={MessageSquare}
         iconColor="text-violet-500"

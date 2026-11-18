@@ -16,7 +16,7 @@ const Navbar = () => {
   if (!isMounted) return null;
 
   return (
-    <div className="sticky top-0 z-50 flex items-center gap-1 border-b border-border bg-background/80 px-2 py-2 pt-[max(0.5rem,env(safe-area-inset-top))] backdrop-blur-md md:p-4">
+    <div className="sticky top-0 z-50 flex items-center gap-1 border-b border-border bg-background/80 px-2 py-2 pt-[max(0.5rem,env(safe-area-inset-top))] backdrop-blur-md md:border-transparent md:bg-transparent md:px-6 md:py-2">
       <Mobilesidebar />
       <Link to="/chat" className="flex items-center gap-2 md:hidden">
         <img alt="" src="/logo1.png" className="h-7 w-7 rounded-md object-contain" />
@@ -39,7 +39,9 @@ const Navbar = () => {
         >
           {theme === "light" ? <Moon className="h-5 w-5" /> : <Sun className="h-5 w-5" />}
         </button>
-        <UserButton />
+        <span className="md:hidden">
+          <UserButton />
+        </span>
       </div>
     </div>
   );

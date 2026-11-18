@@ -42,7 +42,7 @@ export default function NewCollectionPage() {
     setError(null);
     try {
       const col = await api.createCollection({ ...form, today: todayISO() });
-      navigate(`/collections/${col.id}`, { replace: true });
+      navigate(`/onsave/collections/${col.id}`, { replace: true });
     } catch (err) {
       setError(errorText(err));
       setUpgrade(!!err?.response?.data?.upgrade);
@@ -53,7 +53,7 @@ export default function NewCollectionPage() {
   return (
     <div className="mx-auto w-full max-w-xl px-4 py-6 lg:px-8">
       <div className="mb-4 flex items-center justify-between">
-        <Link to="/collections" className="inline-flex items-center gap-1 text-sm text-muted-foreground hover:text-foreground">
+        <Link to="/onsave/collections" className="inline-flex items-center gap-1 text-sm text-muted-foreground hover:text-foreground">
           <ArrowLeft className="h-4 w-4" /> {t("back")}
         </Link>
         <LangSwitch />
@@ -124,7 +124,7 @@ export default function NewCollectionPage() {
           >
             {saving && <Loader2 className="h-4 w-4 animate-spin" />} {saving ? t("saving") : t("save")}
           </button>
-          <Link to="/collections" className="rounded-full border border-border px-6 py-2.5 text-sm font-medium hover:bg-accent">
+          <Link to="/onsave/collections" className="rounded-full border border-border px-6 py-2.5 text-sm font-medium hover:bg-accent">
             {t("cancel")}
           </Link>
         </div>

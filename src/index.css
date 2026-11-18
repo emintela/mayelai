@@ -123,11 +123,11 @@ html {
   --chart-4: oklch(0.769 0.165 70.08);
   --chart-5: oklch(0.62 0.15 250);
   --radius: 0.75rem;
-  --sidebar: oklch(0.985 0.008 300 / 0.75);
+  --sidebar: oklch(0.993 0.004 300);
   --sidebar-foreground: oklch(0.3 0.03 280);
   --sidebar-primary: oklch(0.55 0.2 287);
   --sidebar-primary-foreground: oklch(0.99 0 0);
-  --sidebar-accent: oklch(0.935 0.04 293);
+  --sidebar-accent: oklch(0.95 0.035 293);
   --sidebar-accent-foreground: oklch(0.46 0.2 287);
   --sidebar-border: oklch(0.92 0.022 295);
   --sidebar-ring: oklch(0.6 0.18 287);
@@ -165,7 +165,7 @@ html {
   --chart-3: oklch(0.704 0.123 182.5);
   --chart-4: oklch(0.769 0.165 70.08);
   --chart-5: oklch(0.66 0.14 250);
-  --sidebar: oklch(0.19 0.035 285 / 0.8);
+  --sidebar: oklch(0.19 0.032 285);
   --sidebar-foreground: oklch(0.9 0.015 295);
   --sidebar-primary: oklch(0.68 0.17 289);
   --sidebar-primary-foreground: oklch(0.99 0 0);
@@ -187,15 +187,6 @@ html {
     radial-gradient(60rem 28rem at 90% -10%, var(--glow-1), transparent 70%),
     radial-gradient(45rem 40rem at -10% 25%, var(--glow-2), transparent 70%);
   background-attachment: fixed;
-}
-
-/* Left menu only: purple at the top, pink in the middle-right, a hint of green at the bottom. */
-.sidebar-surface {
-  background-color: var(--sidebar);
-  background-image:
-    radial-gradient(120% 45% at 0% 0%, var(--side-purple), transparent 75%),
-    radial-gradient(110% 40% at 100% 50%, var(--side-pink), transparent 75%),
-    radial-gradient(120% 40% at 10% 100%, var(--side-green), transparent 75%);
 }
 
 @layer base {

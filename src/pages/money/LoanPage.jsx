@@ -260,7 +260,7 @@ export default function LoanPage() {
     return (
       <div className="mx-auto max-w-xl px-4 py-10 text-center">
         <p className="text-muted-foreground">{error === "404" ? "Not found." : error}</p>
-        <Link to="/money" className="mt-3 inline-block text-sm font-medium text-primary hover:underline">
+        <Link to="/onsave/money" className="mt-3 inline-block text-sm font-medium text-primary hover:underline">
           {t("back")}
         </Link>
       </div>
@@ -281,7 +281,7 @@ export default function LoanPage() {
   return (
     <div className="mx-auto w-full max-w-2xl space-y-4 px-4 py-6 lg:px-8">
       <div className="flex items-center justify-between">
-        <Link to="/money" className="inline-flex items-center gap-1 text-sm text-muted-foreground hover:text-foreground">
+        <Link to="/onsave/money" className="inline-flex items-center gap-1 text-sm text-muted-foreground hover:text-foreground">
           <ArrowLeft className="h-4 w-4" /> {t("back")}
         </Link>
         <LangSwitch />
@@ -353,7 +353,7 @@ export default function LoanPage() {
             if (!window.confirm(t("deleteConfirm"))) return;
             try {
               await api.deleteLoan(loan.id);
-              navigate("/money", { replace: true });
+              navigate("/onsave/money", { replace: true });
             } catch (err) {
               setActionError(errorText(err));
             }

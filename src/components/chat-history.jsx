@@ -1,7 +1,64 @@
+import { useEffect, useRef, useState } from "react";
 import { Link, useLocation, useNavigate } from "react-router-dom";
-import { Loader2, Search, Trash2, X } from "lucide-react";
+import { Loader2, MessageSquare, MoreHorizontal, MoreVertical, Search, Trash2, X } from "lucide-react";
 import { useConversations } from "@/context/ConversationsContext";
 import { cn } from "@/lib/utils";
+
+// "2h ago", "1d ago", "Mar 4".
+function ago(iso) {
+  if (!iso) return "";
+  const s = (Date.now() - new Date(iso).getTime()) / 1000;
+  if (s < 60) return "just now";
+  if (s < 3600) return `${Math.floor(s / 60)}m ago`;
+  if (s < 86400) return `${Math.floor(s / 3600)}h ago`;
+  if (s < 7 * 86400) return `${Math.floor(s / 86400)}d ago`;
+  return new Date(iso).toLocaleDateString(undefined, { month: "short", day: "numeric" });
+}
+
+// Small dropdown that closes on outside click or Escape.
+function Menu({ label, icon: Icon, children, className }) {
+  const [open, setOpen] = useState(false);
+  const ref = useRef(null);
+  useEffect(() => {
+    if (!open) return;
+    const close = (e) => {
+      if (e.type === "keydown" ? e.key === "Escape" : !ref.current?.contains(e.target)) setOpen(false);
+    };
+    document.addEventListener("mousedown", close);
+    document.addEventListener("keydown", close);
+    return () => {
+      document.removeEventListener("mousedown", close);
+      document.removeEventListener("keydown", close);
+    };
+  }, [open]);
+  return (
+    <div ref={ref} className={cn("relative", className)}>
+      <button
+        type="button"
+        aria-label={label}
+        aria-expanded={open}
+        onClick={() => setOpen((o) => !o)}
+        className={cn(
+          "flex h-7 w-7 items-center justify-center rounded-md text-muted-foreground transition hover:bg-card hover:text-foreground",
+          open && "bg-card text-foreground"
+        )}
+      >
+        <Icon className="h-4 w-4" />
+      </button>
+      {open && (
+        <div
+          role="menu"
+          onClick={() => setOpen(false)}
+          className="absolute right-0 top-full z-50 mt-1 min-w-40 rounded-lg border border-border bg-popover p-1 text-popover-foreground shadow-lg animate-in fade-in-0 zoom-in-95"
+        >
+          {children}
+        </div>
+      )}
+    </div>
+  );
+}
+
+const menuItem = "flex w-full items-center gap-2 rounded-md px-2.5 py-2 text-left text-sm text-destructive-foreground transition hover:bg-destructive/10";
 
 // Sidebar section listing the user's past chats, with search and delete.
 const ChatHistory = () => {
@@ -32,19 +89,26 @@ const ChatHistory = () => {
   const searching = query.trim() !== "";
 
   return (
-    <div className="flex min-h-0 flex-1 flex-col px-3">
-      <span className="px-3 pb-2 text-xs font-semibold uppercase tracking-wider text-muted-foreground">
-        Chat history
-      </span>
+    <div className="flex min-h-0 flex-1 flex-col px-4 pt-4">
+      <div className="flex items-center justify-between pb-2 pl-1">
+        <span className="text-[11px] font-semibold uppercase tracking-[0.08em] text-muted-foreground">Chat history</span>
+        {conversations.length > 0 && !searching && (
+          <Menu label="Chat history options" icon={MoreHorizontal}>
+            <button type="button" role="menuitem" onClick={handleClearAll} className={menuItem}>
+              <Trash2 className="h-4 w-4" /> Clear all history
+            </button>
+          </Menu>
+        )}
+      </div>
 
       <div className="relative">
-        <Search className="pointer-events-none absolute left-2.5 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+        <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
         <input
           value={query}
           onChange={(e) => setQuery(e.target.value)}
           placeholder="Search chats…"
           aria-label="Search chats"
-          className="w-full rounded-lg border border-sidebar-border bg-card py-2 pl-8 pr-8 text-base text-foreground md:text-sm outline-none transition placeholder:text-muted-foreground focus:ring-2 focus:ring-ring/40"
+          className="h-10 w-full rounded-xl border border-sidebar-border bg-card pl-9 pr-8 text-base text-foreground outline-none transition placeholder:text-muted-foreground focus:border-ring/60 focus:ring-2 focus:ring-ring/20 md:text-sm"
         />
         {searching && (
           <button
@@ -57,13 +121,13 @@ const ChatHistory = () => {
         )}
       </div>
 
-      <div className="mt-2 min-h-0 flex-1 space-y-0.5 overflow-y-auto pb-2">
+      <div className="-mx-1 mt-2 min-h-0 flex-1 space-y-0.5 overflow-y-auto px-1 pb-2">
         {loading && conversations.length === 0 && (
           <div className="flex items-center gap-2 px-3 py-2 text-sm text-muted-foreground">
             <Loader2 className="h-4 w-4 animate-spin" /> Loading…
           </div>
         )}
-        {error && <p className="px-3 py-2 text-sm text-destructive">{error}</p>}
+        {error && <p className="px-3 py-2 text-sm text-destructive-foreground">{error}</p>}
         {!loading && !error && conversations.length === 0 && (
           <p className="px-3 py-2 text-sm text-muted-foreground">
             {searching ? `No chats match “${query.trim()}”.` : "No chats yet. Start one!"}
@@ -75,40 +139,26 @@ const ChatHistory = () => {
           return (
             <div
               key={conv.id}
-              className={cn(
-                "group flex items-center rounded-lg transition hover:bg-sidebar-accent/60",
-                active && "bg-sidebar-accent"
-              )}
+              className={cn("group flex items-center rounded-xl transition hover:bg-sidebar-accent/60", active && "bg-sidebar-accent")}
             >
-              <Link to={`/chat/${conv.id}`} className="min-w-0 flex-1 px-3 py-2">
-                <p className={cn("truncate text-sm", active ? "font-medium text-sidebar-accent-foreground" : "text-sidebar-foreground")}>
-                  {conv.title}
-                </p>
-                {conv.snippet && (
-                  <p className="truncate text-xs text-muted-foreground">{conv.snippet}</p>
-                )}
+              <Link to={`/chat/${conv.id}`} className="flex min-w-0 flex-1 items-start gap-2.5 py-2 pl-2.5 pr-1">
+                <MessageSquare className={cn("mt-0.5 h-4 w-4 shrink-0", active ? "text-sidebar-accent-foreground" : "text-primary/70")} />
+                <span className="min-w-0">
+                  <span className={cn("block truncate text-sm", active ? "font-semibold text-sidebar-accent-foreground" : "font-medium text-sidebar-foreground")}>
+                    {conv.title}
+                  </span>
+                  <span className="block truncate text-xs text-muted-foreground">{conv.snippet || ago(conv.updatedAt)}</span>
+                </span>
               </Link>
-              <button
-                onClick={() => handleDelete(conv)}
-                aria-label={`Delete chat "${conv.title}"`}
-                title="Delete chat"
-                className="mr-1 rounded p-1.5 text-muted-foreground transition hover:bg-card hover:text-destructive focus-visible:opacity-100 md:opacity-0 md:group-hover:opacity-100"
-              >
-                <Trash2 className="h-4 w-4" />
-              </button>
+              <Menu label={`Options for "${conv.title}"`} icon={MoreVertical} className="mr-1 md:opacity-0 md:focus-within:opacity-100 md:group-hover:opacity-100">
+                <button type="button" role="menuitem" onClick={() => handleDelete(conv)} className={menuItem}>
+                  <Trash2 className="h-4 w-4" /> Delete chat
+                </button>
+              </Menu>
             </div>
           );
         })}
       </div>
-
-      {!searching && conversations.length > 0 && (
-        <button
-          onClick={handleClearAll}
-          className="mb-1 flex items-center justify-center gap-1.5 rounded-lg px-3 py-2 text-xs text-muted-foreground transition hover:bg-sidebar-accent/60 hover:text-destructive"
-        >
-          <Trash2 className="h-3.5 w-3.5" /> Clear all history
-        </button>
-      )}
     </div>
   );
 };

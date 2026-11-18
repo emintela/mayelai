@@ -36,7 +36,7 @@ const WebSearchPage = () => {
   return (
     <div className="flex min-h-full flex-col">
       <Heading
-        title="🌐 Web Search"
+        title="Web Search"
         description="Real-time results from across the web"
         icon={Search}
         iconColor="text-amber-500"

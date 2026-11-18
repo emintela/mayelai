@@ -1,7 +1,7 @@
 import { useEffect, useState } from "react";
 import { Link } from "react-router-dom";
 import { useUser } from "@clerk/clerk-react";
-import { Bell, Check, CheckCircle2, Plus, RefreshCw } from "lucide-react";
+import { Bell, Check, CheckCircle2, ChevronRight, HandCoins, HeartHandshake, Plus, RefreshCw } from "lucide-react";
 import { errorText, useApi } from "@/lib/api";
 import { useLang, useT } from "@/lib/i18n";
 import { formatDate } from "@/lib/money";
@@ -122,6 +122,32 @@ function Due({ items }) {
   );
 }
 
+// Money and Collections: the other family money tools inside onSave.
+function MoreTools() {
+  const t = useT();
+  const tools = [
+    ["/onsave/money", HandCoins, t("osLoans"), t("osLoansBody"), "bg-os-money-soft text-os-money"],
+    ["/onsave/collections", HeartHandshake, t("collections"), t("osCollectionsBody"), "bg-os-brand-soft text-os-brand"],
+  ];
+  return (
+    <section className="space-y-2.5">
+      <h2 className="text-[15px] font-bold">{t("osMoreTools")}</h2>
+      {tools.map(([to, Icon, title, body, tone]) => (
+        <LinkCard key={to} to={to} className="flex items-center gap-3 rounded-2xl px-3.5 py-3">
+          <span className={cn("flex h-11 w-11 shrink-0 items-center justify-center rounded-2xl", tone)}>
+            <Icon className="h-5 w-5" aria-hidden="true" />
+          </span>
+          <span className="min-w-0 flex-1">
+            <span className="block text-[15px] font-semibold">{title}</span>
+            <span className="block truncate text-[13px] text-os-muted">{body}</span>
+          </span>
+          <ChevronRight className="h-4 w-4 text-os-muted" aria-hidden="true" />
+        </LinkCard>
+      ))}
+    </section>
+  );
+}
+
 export default function Home() {
   const api = useApi();
   const t = useT();
@@ -207,6 +233,7 @@ export default function Home() {
               ))}
             </section>
           )}
+          <MoreTools />
         </>
       )}
     </div>

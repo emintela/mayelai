@@ -38,7 +38,7 @@ export default function CollectionsPage() {
       <div className="mx-auto w-full max-w-3xl space-y-4 px-4 pb-12 lg:px-8">
         <div className="flex flex-wrap items-center gap-3">
           <Link
-            to="/collections/new"
+            to="/onsave/collections/new"
             aria-disabled={atLimit}
             className={cn(
               "inline-flex items-center gap-1.5 rounded-full bg-primary px-5 py-2.5 text-sm font-medium text-primary-foreground hover:opacity-90",
@@ -71,7 +71,7 @@ export default function CollectionsPage() {
           </div>
         ) : (
           list.map((c) => (
-            <Link key={c.id} to={`/collections/${c.id}`} className="block">
+            <Link key={c.id} to={`/onsave/collections/${c.id}`} className="block">
               <Card className={cn("space-y-3 transition hover:border-primary/40", c.status !== "open" && "opacity-70")}>
                 <div>
                   <p className="text-xs text-muted-foreground">

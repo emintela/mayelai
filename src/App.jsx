@@ -24,11 +24,18 @@ import Create from "@/onsave/Create";
 import Activity from "@/onsave/Activity";
 import Me from "@/onsave/Me";
 import Invite from "@/onsave/Invite";
+import FamilyMoney from "@/onsave/FamilyMoney";
 
 // Old Likelemba addresses now open in onSave.
 function OldGroup() {
   const { id } = useParams();
   return <Navigate to={`/onsave/groups/${id}`} replace />;
+}
+
+// Money and Collections now live inside onSave; old addresses still work.
+function MovedToOnSave({ base }) {
+  const { id } = useParams();
+  return <Navigate to={`/onsave/${base}${id ? `/${id}` : ""}`} replace />;
 }
 
 function App() {
@@ -52,7 +59,20 @@ function App() {
           <Route path="new" element={<Create />} />
           <Route path="activity" element={<Activity />} />
           <Route path="me" element={<Me />} />
+          {/* Money and Collections, as part of onSave */}
+          <Route element={<FamilyMoney />}>
+            <Route path="money" element={<MoneyPage />} />
+            <Route path="money/new" element={<NewLoanPage />} />
+            <Route path="money/:id" element={<LoanPage />} />
+            <Route path="collections" element={<CollectionsPage />} />
+            <Route path="collections/new" element={<NewCollectionPage />} />
+            <Route path="collections/:id" element={<CollectionPage />} />
+          </Route>
         </Route>
+        <Route path="/money" element={<MovedToOnSave base="money" />} />
+        <Route path="/money/:id" element={<MovedToOnSave base="money" />} />
+        <Route path="/collections" element={<MovedToOnSave base="collections" />} />
+        <Route path="/collections/:id" element={<MovedToOnSave base="collections" />} />
         <Route path="/likelemba" element={<Navigate to="/onsave" replace />} />
         <Route path="/likelemba/new" element={<Navigate to="/onsave/new" replace />} />
         <Route path="/likelemba/:id" element={<OldGroup />} />
@@ -61,12 +81,6 @@ function App() {
           {/* One route with an optional id so the page isn't remounted when a new chat gets its URL */}
           <Route path="/chat/:conversationId?" element={<ChatPage />} />
           <Route path="/websearch" element={<WebSearchPage />} />
-          <Route path="/money" element={<MoneyPage />} />
-          <Route path="/money/new" element={<NewLoanPage />} />
-          <Route path="/money/:id" element={<LoanPage />} />
-          <Route path="/collections" element={<CollectionsPage />} />
-          <Route path="/collections/new" element={<NewCollectionPage />} />
-          <Route path="/collections/:id" element={<CollectionPage />} />
           <Route path="/settings" element={<SettingsPage />} />
         </Route>
       </Routes>

@@ -61,7 +61,7 @@ function LoanRow({ loan }) {
   const open = loan.status === "open";
   return (
     <Link
-      to={`/money/${loan.id}`}
+      to={`/onsave/money/${loan.id}`}
       className="flex items-center gap-3 rounded-2xl border border-border bg-card p-4 shadow-sm transition hover:border-primary/40"
     >
       <span
@@ -132,7 +132,7 @@ export default function MoneyPage() {
     setParseError(null);
     try {
       const draft = await api.parseLoan(sentence.trim(), todayISO());
-      navigate("/money/new", { state: { draft } });
+      navigate("/onsave/money/new", { state: { draft } });
     } catch (err) {
       setParseError(errorText(err));
     } finally {
@@ -180,7 +180,7 @@ export default function MoneyPage() {
                 {t("understand")}
               </button>
               <Link
-                to="/money/new"
+                to="/onsave/money/new"
                 aria-disabled={atLimit}
                 className={cn(
                   "inline-flex items-center gap-1.5 rounded-full border border-border px-4 py-2 text-sm font-medium transition hover:bg-accent",

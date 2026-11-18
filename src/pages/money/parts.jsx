@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { useLocation } from "react-router-dom";
 import { Check, Copy, Loader2, MessageCircle, MessageSquareText, Sparkles } from "lucide-react";
 import { setLang, useLang, useT } from "@/lib/i18n";
 import { errorText } from "@/lib/api";
@@ -8,6 +9,9 @@ import { cn } from "@/lib/utils";
 export function LangSwitch({ className }) {
   const lang = useLang();
   const t = useT();
+  const { pathname } = useLocation();
+  // Inside onSave the language is set under Me.
+  if (pathname.startsWith("/onsave")) return null;
   return (
     <div className={cn("inline-flex items-center gap-1 rounded-full border border-border bg-card p-1 text-xs", className)}>
       {[

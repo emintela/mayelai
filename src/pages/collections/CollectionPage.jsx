@@ -178,7 +178,7 @@ export default function CollectionPage() {
     return (
       <div className="mx-auto max-w-xl px-4 py-10 text-center">
         <p className="text-muted-foreground">{error}</p>
-        <Link to="/collections" className="mt-3 inline-block text-sm font-medium text-primary hover:underline">{t("back")}</Link>
+        <Link to="/onsave/collections" className="mt-3 inline-block text-sm font-medium text-primary hover:underline">{t("back")}</Link>
       </div>
     );
   if (!col)
@@ -196,7 +196,7 @@ export default function CollectionPage() {
   return (
     <div className="mx-auto w-full max-w-2xl space-y-4 px-4 py-6 lg:px-8">
       <div className="flex items-center justify-between">
-        <Link to="/collections" className="inline-flex items-center gap-1 text-sm text-muted-foreground hover:text-foreground">
+        <Link to="/onsave/collections" className="inline-flex items-center gap-1 text-sm text-muted-foreground hover:text-foreground">
           <ArrowLeft className="h-4 w-4" /> {t("back")}
         </Link>
         <LangSwitch />
@@ -280,7 +280,7 @@ export default function CollectionPage() {
             if (!window.confirm(t("deleteCollectionConfirm"))) return;
             try {
               await api.deleteCollection(col.id);
-              navigate("/collections", { replace: true });
+              navigate("/onsave/collections", { replace: true });
             } catch (err) {
               setActionError(errorText(err));
             }
