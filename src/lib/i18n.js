@@ -1,4 +1,5 @@
 import { useCallback, useSyncExternalStore } from "react";
+import { onsaveEn, onsaveFr } from "@/onsave/strings";
 
 // Tiny i18n for the Money module: English and French (Lingala coming soon).
 // The choice is remembered per browser.
@@ -528,6 +529,9 @@ const dict = {
     pubFooterGroup: "Mayel'AI ne gère pas l'argent. Payez selon les règles ; l'organisateur confirme.",
   },
 };
+
+Object.assign(dict.en, onsaveEn);
+Object.assign(dict.fr, onsaveFr);
 
 export function useT() {
   const lang = useLang();

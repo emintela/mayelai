@@ -73,6 +73,13 @@ export function useApi() {
       deleteGroup: (id) => request("delete", `/api/money/groups/${encodeURIComponent(id)}`),
       groupAction: (id, action, body) => request("post", `/api/money/groups/${encodeURIComponent(id)}/${action}`, { data: body }),
       removeMember: (id, mid) => request("delete", `/api/money/groups/${encodeURIComponent(id)}/members/${encodeURIComponent(mid)}`),
+      // onSave (groups I organize or belong to)
+      myGroups: () => request("get", "/api/onsave/groups"),
+      myGroup: (id) => request("get", `/api/onsave/groups/${encodeURIComponent(id)}`),
+      payMine: (id, round, method) => request("post", `/api/onsave/groups/${encodeURIComponent(id)}/paid`, { data: { round, method } }),
+      joinGroup: (token, body) => request("post", `/api/onsave/join/${encodeURIComponent(token)}`, { data: body }),
+      claimMember: (token, memberToken) => request("post", "/api/onsave/claim", { data: { token, member_token: memberToken } }),
+      activity: () => request("get", "/api/onsave/activity"),
       getBilling: () => request("get", "/api/billing"),
       startCheckout: () => request("post", "/api/billing/checkout"),
       openPortal: () => request("post", "/api/billing/portal"),

@@ -1,4 +1,4 @@
-import { Routes, Route, Navigate } from "react-router-dom";
+import { Routes, Route, Navigate, useParams } from "react-router-dom";
 import { ThemeProvider } from "@/components/theme-provider";
 import ProtectedLayout from "@/layouts/ProtectedLayout";
 import SignInPage from "@/pages/SignInPage";
@@ -14,10 +14,22 @@ import CollectionsPage from "@/pages/collections/CollectionsPage";
 import NewCollectionPage from "@/pages/collections/NewCollectionPage";
 import CollectionPage from "@/pages/collections/CollectionPage";
 import PublicCollectionPage from "@/pages/collections/PublicCollectionPage";
-import GroupsPage from "@/pages/groups/GroupsPage";
-import NewGroupPage from "@/pages/groups/NewGroupPage";
-import GroupPage from "@/pages/groups/GroupPage";
-import PublicGroupPage from "@/pages/groups/PublicGroupPage";
+import OnSaveLayout from "@/onsave/OnSaveLayout";
+import Welcome from "@/onsave/Welcome";
+import Home from "@/onsave/Home";
+import Groups from "@/onsave/Groups";
+import GroupDetail from "@/onsave/GroupDetail";
+import Pay from "@/onsave/Pay";
+import Create from "@/onsave/Create";
+import Activity from "@/onsave/Activity";
+import Me from "@/onsave/Me";
+import Invite from "@/onsave/Invite";
+
+// Old Likelemba addresses now open in onSave.
+function OldGroup() {
+  const { id } = useParams();
+  return <Navigate to={`/onsave/groups/${id}`} replace />;
+}
 
 function App() {
   return (
@@ -29,7 +41,21 @@ function App() {
         {/* Shared loan link: public, no account */}
         <Route path="/l/:token" element={<PublicLoanPage />} />
         <Route path="/c/:token" element={<PublicCollectionPage />} />
-        <Route path="/g/:token" element={<PublicGroupPage />} />
+        <Route path="/g/:token" element={<Invite />} />
+        {/* onSave: the likelemba app (its own mobile layout, no chat sidebar) */}
+        <Route path="/onsave/welcome" element={<Welcome />} />
+        <Route path="/onsave" element={<OnSaveLayout />}>
+          <Route index element={<Home />} />
+          <Route path="groups" element={<Groups />} />
+          <Route path="groups/:id" element={<GroupDetail />} />
+          <Route path="groups/:id/pay" element={<Pay />} />
+          <Route path="new" element={<Create />} />
+          <Route path="activity" element={<Activity />} />
+          <Route path="me" element={<Me />} />
+        </Route>
+        <Route path="/likelemba" element={<Navigate to="/onsave" replace />} />
+        <Route path="/likelemba/new" element={<Navigate to="/onsave/new" replace />} />
+        <Route path="/likelemba/:id" element={<OldGroup />} />
         <Route element={<ProtectedLayout />}>
           <Route path="/dashboard" element={<Navigate to="/chat" replace />} />
           {/* One route with an optional id so the page isn't remounted when a new chat gets its URL */}
@@ -41,9 +67,6 @@ function App() {
           <Route path="/collections" element={<CollectionsPage />} />
           <Route path="/collections/new" element={<NewCollectionPage />} />
           <Route path="/collections/:id" element={<CollectionPage />} />
-          <Route path="/likelemba" element={<GroupsPage />} />
-          <Route path="/likelemba/new" element={<NewGroupPage />} />
-          <Route path="/likelemba/:id" element={<GroupPage />} />
           <Route path="/settings" element={<SettingsPage />} />
         </Route>
       </Routes>

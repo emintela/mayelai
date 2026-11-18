@@ -68,9 +68,13 @@ Under **Collections**: gather contributions for a *matanga*, wedding, birth or m
 - The public page shows the total received and promised and the list of givers; phone numbers are only visible to the organizer.
 - Free plan: 1 open collection (`FREE_OPEN_COLLECTIONS`); Pro: unlimited.
 
-### Likelemba (rotating savings groups)
+### onSave — likelemba (rotating savings groups)
 
-Under **Likelemba**: each round every member pays the same amount and one member receives the pot.
+**onSave by Mayel'AI** (`/onsave`) is the likelemba app: a mobile-first layout with a bottom tab bar (Home, Groups, new group, Activity, Me), installable on phones (`public/onsave-assets/manifest.json`, `public/sw.js`). Each round every member pays the same amount and one member receives the pot.
+
+- **Home** shows your next payout, what you owe this round ("I paid"), payments waiting for your confirmation, and your groups. **Activity** lists joins, payments, confirmations and payouts across your groups.
+- Members can be linked to a Mayel'AI account (`money_group_members.user_id`): joining from the group link while signed in, or signing up after joining with a personal link (remembered on the device and claimed automatically). Linked members see the group in the app and say "I paid" there (`/api/onsave/...`). People without an account keep using the links.
+- The old `/likelemba` addresses redirect to `/onsave`.
 
 - The organizer creates the group (amount, weekly / every 2 weeks / monthly, rules), adds members or shares a join link (`/g/<token>`), and sets the payout order by hand or with a random draw.
 - Starting fixes the calendar (monthly dates keep the day, clamped to month end). Each member gets a personal link to say "I paid"; the organizer confirms "received" and "pot handed over". The group completes when every round is paid out.

@@ -8,7 +8,7 @@ import ChatHistory from "@/components/chat-history";
 const FEATURES = [
   { to: "/money", label: "Money", icon: HandCoins },
   { to: "/collections", label: "Collections", icon: HeartHandshake },
-  { to: "/likelemba", label: "Likelemba", icon: RefreshCcw },
+  { to: "/onsave", label: "onSave", icon: RefreshCcw },
 ];
 
 // Layout: logo, "New chat" and feature shortcuts pinned at the top,

@@ -53,6 +53,7 @@ func registerMoney(api fiber.Router, d Deps, aiLimiter fiber.Handler) {
 	m.Post("/loans/:id/reminders", logReminder(d))
 	registerCollections(m, d, aiLimiter)
 	registerGroups(m, d, aiLimiter)
+	registerOnSave(api, d)
 }
 
 func registerPublicMoney(app *fiber.App, d Deps) {
@@ -103,7 +104,9 @@ func moneyError(c fiber.Ctx, err error) error {
 	case errors.Is(err, money.ErrNotFound):
 		return jsonError(c, fiber.StatusNotFound, "Not found.")
 	case errors.Is(err, money.ErrState):
-		return jsonError(c, fiber.StatusConflict, "This can't be done in the loan's current state.")
+		return jsonError(c, fiber.StatusConflict, "This can't be done in its current state.")
+	case errors.Is(err, money.ErrAlreadyLinked):
+		return jsonError(c, fiber.StatusConflict, "This personal link is already used by another account.")
 	case errors.As(err, &le):
 		msg := "You've reached the free plan's limit of open loans. Upgrade to Pro for unlimited loans, or close a loan first."
 		if le.Kind == "groups" {

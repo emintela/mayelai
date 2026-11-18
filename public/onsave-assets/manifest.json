@@ -1,0 +1,23 @@
+{
+  "id": "/onsave",
+  "name": "onSave by Mayel'AI",
+  "short_name": "onSave",
+  "description": "Run your likelemba (tontine) with family and friends: who pays, who receives, and when.",
+  "start_url": "/onsave",
+  "scope": "/",
+  "display": "standalone",
+  "orientation": "portrait",
+  "background_color": "#241a4f",
+  "theme_color": "#241a4f",
+  "lang": "fr",
+  "categories": ["finance", "lifestyle"],
+  "icons": [
+    { "src": "/onsave-assets/icon-192.png", "sizes": "192x192", "type": "image/png", "purpose": "any" },
+    { "src": "/onsave-assets/icon-512.png", "sizes": "512x512", "type": "image/png", "purpose": "any" },
+    { "src": "/onsave-assets/icon-512.png", "sizes": "512x512", "type": "image/png", "purpose": "maskable" }
+  ],
+  "shortcuts": [
+    { "name": "New group", "short_name": "New", "url": "/onsave/new", "icons": [{ "src": "/onsave-assets/icon-192.png", "sizes": "192x192" }] },
+    { "name": "Activity", "url": "/onsave/activity", "icons": [{ "src": "/onsave-assets/icon-192.png", "sizes": "192x192" }] }
+  ]
+}

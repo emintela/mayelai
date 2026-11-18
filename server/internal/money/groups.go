@@ -27,6 +27,7 @@ type Member struct {
 	Position    int       `json:"position"`               // receives the pot in this round
 	MemberToken string    `json:"member_token,omitempty"` // organizer view only (personal link)
 	Source      string    `json:"source,omitempty"`
+	UserID      *string   `json:"-"` // linked Mayel'AI account (onSave), if any
 }
 
 type RoundPayment struct {
@@ -129,7 +130,7 @@ func scanGroup(row pgx.Row) (*Group, error) {
 
 // load fills members, rounds and derived fields.
 func (s *Store) loadGroup(ctx context.Context, g *Group) error {
-	rows, err := s.pool.Query(ctx, `SELECT id, name, phone, position, member_token, source FROM money_group_members
+	rows, err := s.pool.Query(ctx, `SELECT id, name, phone, position, member_token, source, user_id FROM money_group_members
 		WHERE group_id = $1 ORDER BY position`, g.ID)
 	if err != nil {
 		return err
@@ -137,7 +138,7 @@ func (s *Store) loadGroup(ctx context.Context, g *Group) error {
 	g.Members = []Member{}
 	for rows.Next() {
 		var m Member
-		if err := rows.Scan(&m.ID, &m.Name, &m.Phone, &m.Position, &m.MemberToken, &m.Source); err != nil {
+		if err := rows.Scan(&m.ID, &m.Name, &m.Phone, &m.Position, &m.MemberToken, &m.Source, &m.UserID); err != nil {
 			rows.Close()
 			return err
 		}
@@ -327,8 +328,8 @@ func (s *Store) CreateGroup(ctx context.Context, owner string, n NewGroup, maxAc
 		return nil, err
 	}
 	if n.IncludeMe {
-		if _, err := tx.Exec(ctx, `INSERT INTO money_group_members (group_id, name, position, member_token, source)
-			VALUES ($1, $2, 1, $3, 'organizer')`, id, ownerName, newMemberToken()); err != nil {
+		if _, err := tx.Exec(ctx, `INSERT INTO money_group_members (group_id, name, position, member_token, source, user_id)
+			VALUES ($1, $2, 1, $3, 'organizer', $4)`, id, ownerName, newMemberToken(), owner); err != nil {
 			return nil, err
 		}
 	}
@@ -397,7 +398,8 @@ func lockGroup(ctx context.Context, tx pgx.Tx, owner string, id uuid.UUID) (stri
 	return status, err
 }
 
-func addMember(ctx context.Context, tx pgx.Tx, groupID uuid.UUID, name, phone, source string) (string, error) {
+// addMember appends a member at the end of the order; userID links an account (onSave) or is nil.
+func addMember(ctx context.Context, tx pgx.Tx, groupID uuid.UUID, name, phone, source string, userID *string) (string, error) {
 	name, err := cleanText(name, 80, "Name")
 	if err != nil {
 		return "", err
@@ -420,8 +422,8 @@ func addMember(ctx context.Context, tx pgx.Tx, groupID uuid.UUID, name, phone, s
 		return "", invalid("A group can have at most 50 members.")
 	}
 	token := newMemberToken()
-	_, err = tx.Exec(ctx, `INSERT INTO money_group_members (group_id, name, phone, position, member_token, source)
-		VALUES ($1, $2, $3, $4, $5, $6)`, groupID, name, ph, n+1, token, source)
+	_, err = tx.Exec(ctx, `INSERT INTO money_group_members (group_id, name, phone, position, member_token, source, user_id)
+		VALUES ($1, $2, $3, $4, $5, $6, $7)`, groupID, name, ph, n+1, token, source, userID)
 	return token, err
 }
 
@@ -439,7 +441,7 @@ func (s *Store) AddMember(ctx context.Context, owner string, id uuid.UUID, name,
 	if status != "forming" {
 		return nil, invalid("Members can only be added before the group starts.")
 	}
-	if _, err := addMember(ctx, tx, id, name, phone, "organizer"); err != nil {
+	if _, err := addMember(ctx, tx, id, name, phone, "organizer", nil); err != nil {
 		return nil, err
 	}
 	if err := tx.Commit(ctx); err != nil {
@@ -827,7 +829,7 @@ func (s *Store) Join(ctx context.Context, token, name, phone string) (*PublicGro
 	if status != "forming" {
 		return nil, "", ErrState
 	}
-	memberToken, err := addMember(ctx, tx, id, name, phone, "link")
+	memberToken, err := addMember(ctx, tx, id, name, phone, "link", nil)
 	if err != nil {
 		return nil, "", err
 	}
@@ -867,17 +869,24 @@ func (s *Store) MemberSaysPaid(ctx context.Context, token, memberToken string, r
 	if status != "active" {
 		return nil, ErrState
 	}
-	if err := checkMemberRound(ctx, tx, groupID, memberID, round); err != nil {
-		return nil, err
-	}
-	if _, err := tx.Exec(ctx, `INSERT INTO money_group_payments (group_id, member_id, round, status, method, sent_at)
-		VALUES ($1, $2, $3, 'sent', $4, now())
-		ON CONFLICT (member_id, round) DO UPDATE SET method = CASE WHEN EXCLUDED.method <> '' THEN EXCLUDED.method ELSE money_group_payments.method END,
-			updated_at = now()`, groupID, memberID, round, method); err != nil {
+	if err := markSent(ctx, tx, groupID, memberID, round, method); err != nil {
 		return nil, err
 	}
 	if err := tx.Commit(ctx); err != nil {
 		return nil, err
 	}
 	return s.PublicGroupByToken(ctx, token, memberToken)
+}
+
+// markSent records "I paid" for a member's round; it never downgrades a
+// payment the organizer already confirmed as received.
+func markSent(ctx context.Context, tx pgx.Tx, groupID, memberID uuid.UUID, round int, method string) error {
+	if err := checkMemberRound(ctx, tx, groupID, memberID, round); err != nil {
+		return err
+	}
+	_, err := tx.Exec(ctx, `INSERT INTO money_group_payments (group_id, member_id, round, status, method, sent_at)
+		VALUES ($1, $2, $3, 'sent', $4, now())
+		ON CONFLICT (member_id, round) DO UPDATE SET method = CASE WHEN EXCLUDED.method <> '' THEN EXCLUDED.method ELSE money_group_payments.method END,
+			updated_at = now()`, groupID, memberID, round, method)
+	return err
 }

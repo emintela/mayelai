@@ -72,6 +72,27 @@ html {
   --radius-md: calc(var(--radius) - 2px);
   --radius-lg: var(--radius);
   --radius-xl: calc(var(--radius) + 4px);
+  /* onSave (likelemba app) palette — see .onsave below */
+  --color-os-bg: var(--os-bg);
+  --color-os-card: var(--os-card);
+  --color-os-line: var(--os-line);
+  --color-os-line-soft: var(--os-line-soft);
+  --color-os-ink: var(--os-ink);
+  --color-os-muted: var(--os-muted);
+  --color-os-brand: var(--os-brand);
+  --color-os-brand-ink: var(--os-brand-ink);
+  --color-os-brand-soft: var(--os-brand-soft);
+  --color-os-deep: var(--os-deep);
+  --color-os-deep-muted: var(--os-deep-muted);
+  --color-os-deep-line: var(--os-deep-line);
+  --color-os-money: var(--os-money);
+  --color-os-money-soft: var(--os-money-soft);
+  --color-os-mint: var(--os-mint);
+  --color-os-warn: var(--os-warn);
+  --color-os-warn-soft: var(--os-warn-soft);
+  --color-os-danger: var(--os-danger);
+  --color-os-btn: #5a3fd4;
+  --color-os-btn-money: #0b7a55;
 }
 
 :root {
@@ -183,5 +204,57 @@ html {
   }
   body {
     @apply bg-background text-foreground;
+  }
+}
+
+/* onSave: the likelemba app. Deep purple for hero surfaces, one green for
+   money and "paid" actions, Montserrat for headings and amounts, Inter for text.
+   Buttons (os-btn, os-btn-money) keep white text in both themes. */
+@layer base {
+  .onsave {
+    --os-bg: #f6f4fb;
+    --os-card: #ffffff;
+    --os-line: #e7e3f1;
+    --os-line-soft: #f0edf7;
+    --os-ink: #1b1730;
+    --os-muted: #6b6580;
+    --os-brand: #5a3fd4;
+    --os-brand-ink: #3f2aa8;
+    --os-brand-soft: #eeeafb;
+    --os-deep: #241a4f;
+    --os-deep-muted: #c9c1ee;
+    --os-deep-line: #4a3a8e;
+    --os-money: #0b7a55;
+    --os-money-soft: #e3f4ec;
+    --os-mint: #3fc48e;
+    --os-warn: #9a5b00;
+    --os-warn-soft: #fcf1dc;
+    --os-danger: #b42345;
+    font-family: Inter, ui-sans-serif, system-ui, sans-serif;
+    color: var(--os-ink);
+    background-color: var(--os-bg);
+  }
+  .dark .onsave {
+    --os-bg: #110d20;
+    --os-card: #1b1631;
+    --os-line: #2d2650;
+    --os-line-soft: #241e41;
+    --os-ink: #f3f0fb;
+    --os-muted: #aaa3c4;
+    --os-brand: #a996f7;
+    --os-brand-ink: #cfc5fb;
+    --os-brand-soft: #2a2257;
+    --os-deep: #2a1f5c;
+    --os-deep-muted: #cfc7f2;
+    --os-deep-line: #4a3a8e;
+    --os-money: #4fd29c;
+    --os-money-soft: #12382a;
+    --os-mint: #3fc48e;
+    --os-warn: #f2b54a;
+    --os-warn-soft: #3a2a0c;
+    --os-danger: #ff8fa6;
+  }
+  .os-display {
+    font-family: Montserrat, ui-sans-serif, system-ui, sans-serif;
   }
 }
