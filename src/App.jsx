@@ -28,6 +28,7 @@ import MoneyHome from "@/onsave/money/MoneyHome";
 import MoneyFlow from "@/onsave/money/MoneyFlow";
 import RequestDetail from "@/onsave/money/RequestDetail";
 import RequestReply from "@/onsave/money/RequestReply";
+import Ask from "@/onsave/ask/Ask";
 
 // Old Likelemba addresses now open in onSave.
 function OldGroup() {
@@ -65,6 +66,7 @@ function App() {
           <Route path="activity" element={<Activity />} />
           <Route path="me" element={<Me />} />
           {/* Money and Collections, as part of onSave */}
+          <Route path="ask/:conversationId?" element={<Ask />} />
           <Route path="money" element={<MoneyHome />} />
           <Route path="money/send" element={<MoneyFlow />} />
           <Route path="money/requests/:id" element={<RequestDetail />} />

@@ -156,7 +156,7 @@ export default function Me() {
           {plan && <span className="text-sm text-os-muted">{plan === "pro" ? t("osPlanPro") : t("osPlanFree")}</span>}
           <ChevronRight className="h-4 w-4 text-os-muted" />
         </Link>
-        <Link to="/chat" className={row}>
+        <Link to="/onsave/ask" className={row}>
           <MessageSquare className="h-5 w-5 text-os-brand" />
           <span className="flex-1">{t("osOpenChat")}</span>
           <ChevronRight className="h-4 w-4 text-os-muted" />

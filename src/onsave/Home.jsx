@@ -1,7 +1,7 @@
 import { useEffect, useState } from "react";
 import { Link } from "react-router-dom";
 import { useUser } from "@clerk/clerk-react";
-import { Bell, Check, CheckCircle2, ChevronRight, HandCoins, HeartHandshake, Plus, RefreshCw } from "lucide-react";
+import { Bell, Check, CheckCircle2, ChevronRight, HandCoins, HeartHandshake, Plus, RefreshCw, Sparkles } from "lucide-react";
 import { errorText, useApi } from "@/lib/api";
 import { useLang, useT } from "@/lib/i18n";
 import { formatDate } from "@/lib/money";
@@ -126,6 +126,7 @@ function Due({ items }) {
 function MoreTools() {
   const t = useT();
   const tools = [
+    ["/onsave/ask", Sparkles, t("osaAsk"), t("osaCardBody"), "bg-os-deep text-os-mint"],
     ["/onsave/money", HandCoins, t("osLoans"), t("osLoansBody"), "bg-os-money-soft text-os-money"],
     ["/onsave/collections", HeartHandshake, t("collections"), t("osCollectionsBody"), "bg-os-brand-soft text-os-brand"],
   ];
@@ -182,10 +183,15 @@ export default function Home() {
             <p className="os-display text-xl font-bold leading-tight">{first}</p>
           </div>
         </div>
+        <div className="flex gap-2">
+        <Link to="/onsave/ask" aria-label={t("osaAsk")} className={cn(iconBtn, "bg-os-deep text-os-mint hover:bg-os-deep")}>
+          <Sparkles className="h-5 w-5" />
+        </Link>
         <Link to="/onsave/activity" aria-label={t("osNotifications")} className={cn(iconBtn, "relative")}>
           <Bell className="h-5 w-5" />
           {unread && <span className="absolute right-[11px] top-[10px] h-2.5 w-2.5 rounded-full border-2 border-os-card bg-[#d9467f]" />}
         </Link>
+        </div>
       </header>
 
       <ErrorNote>{error}</ErrorNote>

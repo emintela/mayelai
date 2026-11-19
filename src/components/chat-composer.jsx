@@ -138,7 +138,7 @@ const AttachmentChip = ({ file, onRemove }) => {
  *
  * onSend({ text, attachments, mode }) is awaited; the box clears when it is called.
  */
-const ChatComposer = ({ onSend, disabled, busy, autoFocus, menuPlacement = "down", mode, onModeChange }) => {
+const ChatComposer = ({ onSend, disabled, busy, autoFocus, menuPlacement = "down", mode, onModeChange, placeholder = "Ask Mayel'AI" }) => {
   const [text, setText] = useState("");
   const [attachments, setAttachments] = useState([]);
   const [reading, setReading] = useState(0);
@@ -299,7 +299,7 @@ const ChatComposer = ({ onSend, disabled, busy, autoFocus, menuPlacement = "down
             onChange={(e) => setText(e.target.value)}
             onKeyDown={onKeyDown}
             onPaste={onPaste}
-            placeholder={dictation.listening ? "Listening…" : "Ask Mayel'AI"}
+            placeholder={dictation.listening ? "Listening…" : placeholder}
             autoFocus={autoFocus}
             disabled={disabled}
             aria-label="Message"

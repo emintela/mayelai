@@ -10,7 +10,7 @@ import { claimRemembered } from "./memberStore";
 import { Spinner, useOnSaveChrome } from "./ui";
 
 // Full-screen flows (paying, creating a group, loan or collection) hide the tab bar.
-const fullScreen = (path) => /^\/onsave\/(new|groups\/[^/]+\/pay|money\/new|money\/send|collections\/new)\/?$/.test(path);
+const fullScreen = (path) => /^\/onsave\/(new|groups\/[^/]+\/pay|money\/new|money\/send|collections\/new|ask(\/[^/]+)?)\/?$/.test(path);
 
 // The + button creates whatever the current section is about.
 function plusFor(path, t) {

@@ -1,25 +1,10 @@
-import { useState, useEffect, useRef } from "react";
-import {
-  Search,
-  Brain,
-  Check,
-  Copy,
-  ThumbsUp,
-  ThumbsDown,
-  Share2,
-  Loader2,
-  MessageSquare,
-  Sparkles,
-  FileSpreadsheet,
-  FileText,
-  Image as ImageIcon,
-} from "lucide-react";
+import { Search, Brain, Loader2, MessageSquare, Sparkles } from "lucide-react";
+import { Link, useParams } from "react-router-dom";
 import Heading from "@/components/heading";
 import ChatComposer from "@/components/chat-composer";
-import { Link, useNavigate, useParams } from "react-router-dom";
+import { MessageActions, MessageAttachments } from "@/components/chat-messages";
 import { cn } from "@/lib/utils";
-import { apiErrorMessage, useApi } from "@/lib/api";
-import { useConversations } from "@/context/ConversationsContext";
+import { useChat } from "@/lib/useChat";
 
 const Avatar = ({ role }) => (
   <div
@@ -51,245 +36,23 @@ const ThinkingIndicator = ({ mode }) => (
   </div>
 );
 
-const ActionButton = ({ label, onClick, active, activeClass, children }) => (
-  <button
-    type="button"
-    onClick={onClick}
-    title={label}
-    aria-label={label}
-    aria-pressed={active}
-    className={cn(
-      "rounded-md p-1.5 text-muted-foreground transition hover:bg-accent hover:text-foreground",
-      active && activeClass
-    )}
-  >
-    {children}
-  </button>
-);
-
-// Copy / share / like / dislike under an assistant reply.
-const MessageActions = ({ message, onFeedback }) => {
-  const [copied, setCopied] = useState(false);
-
-  const copy = async () => {
-    try {
-      await navigator.clipboard.writeText(message.content);
-      setCopied(true);
-      setTimeout(() => setCopied(false), 1500);
-    } catch {
-      /* clipboard blocked */
-    }
-  };
-
-  const share = async () => {
-    if (navigator.share) {
-      try {
-        await navigator.share({ title: "Mayel'AI", text: message.content });
-      } catch {
-        /* user cancelled */
-      }
-    } else {
-      copy();
-    }
-  };
-
-  return (
-    <div className="mt-1 flex items-center gap-0.5 pl-1">
-      <ActionButton label={copied ? "Copied" : "Copy"} onClick={copy}>
-        {copied ? <Check className="h-4 w-4 text-emerald-500" /> : <Copy className="h-4 w-4" />}
-      </ActionButton>
-      <ActionButton label="Share" onClick={share}>
-        <Share2 className="h-4 w-4" />
-      </ActionButton>
-      <ActionButton
-        label="Good response"
-        active={message.feedback === 1}
-        activeClass="text-emerald-500 hover:text-emerald-500"
-        onClick={() => onFeedback(message, message.feedback === 1 ? 0 : 1)}
-      >
-        <ThumbsUp className="h-4 w-4" fill={message.feedback === 1 ? "currentColor" : "none"} />
-      </ActionButton>
-      <ActionButton
-        label="Bad response"
-        active={message.feedback === -1}
-        activeClass="text-rose-500 hover:text-rose-500"
-        onClick={() => onFeedback(message, message.feedback === -1 ? 0 : -1)}
-      >
-        <ThumbsDown className="h-4 w-4" fill={message.feedback === -1 ? "currentColor" : "none"} />
-      </ActionButton>
-    </div>
-  );
-};
-
-// Files attached to a user message: photo thumbnails (this session only) or name chips.
-const MessageAttachments = ({ message }) => {
-  const list = message.localAttachments ?? message.metadata?.attachments;
-  if (!list?.length) return null;
-  return (
-    <div className={cn("flex flex-wrap gap-2", message.content && "mb-2")}>
-      {list.map((a, i) =>
-        a.previewUrl ? (
-          <img
-            key={i}
-            src={a.previewUrl}
-            alt={a.name}
-            className="max-h-48 max-w-full rounded-xl object-cover"
-          />
-        ) : (
-          <span
-            key={i}
-            className="inline-flex max-w-full items-center gap-1.5 rounded-lg bg-white/15 px-2 py-1 text-xs"
-          >
-            {a.kind === "spreadsheet" ? (
-              <FileSpreadsheet className="h-3.5 w-3.5 shrink-0" />
-            ) : a.kind === "image" ? (
-              <ImageIcon className="h-3.5 w-3.5 shrink-0" />
-            ) : (
-              <FileText className="h-3.5 w-3.5 shrink-0" />
-            )}
-            <span className="truncate">{a.name}</span>
-          </span>
-        )
-      )}
-    </div>
-  );
-};
-
 const ChatPage = () => {
   const { conversationId } = useParams();
-  const navigate = useNavigate();
-  const api = useApi();
-  const { upsert } = useConversations();
-
-  const [messages, setMessages] = useState([]);
-  const [pending, setPending] = useState(null); // null | "chat" | "search"
-  const [loadingChat, setLoadingChat] = useState(false);
-  const [loadError, setLoadError] = useState(null);
-  const [searchQuery, setSearchQuery] = useState("");
-  const [showSearchButton, setShowSearchButton] = useState(false);
-  const [quota, setQuota] = useState(null);
-  const [mode, setMode] = useState("chat"); // "chat" (Instant) | "search"
-  const chatContainerRef = useRef(null);
-  // The conversation currently on screen, so a late reply isn't shown in another chat.
-  const activeIdRef = useRef(conversationId ?? null);
-  // Set right after a new chat is created, so we don't refetch what we already have.
-  const justCreatedRef = useRef(null);
-
-  // Load the conversation in the URL (or start empty for /chat).
-  useEffect(() => {
-    activeIdRef.current = conversationId ?? null;
-    if (conversationId && justCreatedRef.current === conversationId) {
-      justCreatedRef.current = null;
-      return;
-    }
-    setShowSearchButton(false);
-    setLoadError(null);
-    setMessages([]);
-    if (!conversationId) return;
-
-    let cancelled = false;
-    setLoadingChat(true);
-    api
-      .getConversation(conversationId)
-      .then((data) => !cancelled && setMessages(data.messages))
-      .catch((err) => {
-        if (cancelled) return;
-        setLoadError(
-          err?.response?.status === 404
-            ? "This chat doesn't exist or was deleted."
-            : "Couldn't load this chat. Please try again."
-        );
-      })
-      .finally(() => !cancelled && setLoadingChat(false));
-    return () => {
-      cancelled = true;
-    };
-  }, [conversationId, api]);
-
-  useEffect(() => {
-    api.getUsage().then(setQuota).catch(() => {});
-  }, [api]);
-
-  useEffect(() => {
-    if (chatContainerRef.current) {
-      chatContainerRef.current.scrollTop = chatContainerRef.current.scrollHeight;
-    }
-  }, [messages, pending]);
-
-  const send = async (text, mode = "chat", attachments = []) => {
-    const sentFrom = conversationId ?? null;
-    const tempId = `temp-${Date.now()}`;
-    // Shown immediately; image previews are kept after the server's copy replaces it.
-    const local = attachments.map(({ name, kind, size, previewUrl }) => ({ name, kind, size, previewUrl }));
-    setMessages((prev) => [
-      ...prev,
-      {
-        id: tempId,
-        role: "user",
-        content: text,
-        metadata: mode === "search" ? { mode } : undefined,
-        localAttachments: local.length ? local : undefined,
-      },
-    ]);
-    setShowSearchButton(false);
-    setPending(mode);
-    try {
-      const data = await api.sendMessage({
-        conversationId: sentFrom ?? undefined,
-        message: text,
-        mode,
-        attachments: attachments.length
-          ? attachments.map(({ name, type, data }) => ({ name, type, data }))
-          : undefined,
-      });
-      upsert(data.conversation);
-      setQuota(data.quota);
-      if (activeIdRef.current !== sentFrom) return; // user switched chats meanwhile
-      setMessages((prev) => [
-        ...prev.map((m) =>
-          m.id === tempId ? { ...data.userMessage, localAttachments: m.localAttachments } : m
-        ),
-        data.assistantMessage,
-      ]);
-      setSearchQuery(text);
-      setShowSearchButton(data.searchSuggestion);
-      if (!sentFrom) {
-        justCreatedRef.current = data.conversation.id;
-        activeIdRef.current = data.conversation.id;
-        navigate(`/chat/${data.conversation.id}`, { replace: true });
-      }
-    } catch (error) {
-      console.error("❌ AI Chat Error:", error);
-      if (activeIdRef.current !== sentFrom) return;
-      setMessages((prev) => [
-        ...prev,
-        {
-          id: `err-${Date.now()}`,
-          role: "assistant",
-          content: apiErrorMessage(error),
-          error: true,
-          upgrade: !!error?.response?.data?.upgrade,
-        },
-      ]);
-    } finally {
-      setPending(null);
-    }
-  };
-
+  const {
+    messages,
+    pending,
+    loadingChat,
+    loadError,
+    searchQuery,
+    showSearchButton,
+    quota,
+    mode,
+    setMode,
+    chatContainerRef,
+    send,
+    handleFeedback,
+  } = useChat(conversationId, "/chat");
   const onSend = ({ text, attachments, mode }) => send(text, mode, attachments);
-
-  // Like / dislike: update immediately, roll back if saving fails.
-  const handleFeedback = async (message, value) => {
-    const setValue = (v) =>
-      setMessages((prev) => prev.map((m) => (m.id === message.id ? { ...m, feedback: v } : m)));
-    const previous = message.feedback ?? 0;
-    setValue(value);
-    try {
-      await api.setFeedback(message.id, value);
-    } catch {
-      setValue(previous);
-    }
-  };
 
   const remaining = quota && quota.limit > 0 ? Math.max(quota.limit - quota.used, 0) : null;
   const isEmpty = messages.length === 0 && !pending && !loadingChat && !loadError;
