@@ -158,6 +158,8 @@ type syncPage struct {
 	} `json:"removed"`
 	NextCursor string `json:"next_cursor"`
 	HasMore    bool   `json:"has_more"`
+	// NOT_READY right after connecting, while Plaid is still loading the history.
+	UpdateStatus string `json:"transactions_update_status"`
 }
 
 func (p *Plaid) Sync(ctx context.Context, accessToken, cursor string) (*syncPage, error) {

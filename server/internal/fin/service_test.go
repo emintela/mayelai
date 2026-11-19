@@ -23,6 +23,7 @@ type fakePlaid struct {
 	relink  bool
 	removed bool
 	page    int
+	notYet  int // answer NOT_READY this many times first
 }
 
 func (f *fakePlaid) ServeHTTP(w http.ResponseWriter, r *http.Request) {
@@ -56,6 +57,11 @@ func (f *fakePlaid) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 			{"account_id":"sav","name":"Plaid Saving","mask":"1111","type":"depository","subtype":"savings","balances":{"current":5000,"iso_currency_code":"USD"}},
 			{"account_id":"cc","name":"Plaid Credit Card","mask":"3333","type":"credit","subtype":"credit card","balances":{"current":410.25,"limit":2000,"iso_currency_code":"USD"}}]}`)
 	case "/transactions/sync":
+		if f.notYet > 0 {
+			f.notYet--
+			_, _ = io.WriteString(w, `{"added":[],"modified":[],"removed":[],"next_cursor":"","has_more":false,"transactions_update_status":"NOT_READY"}`)
+			return
+		}
 		// First sync: two pages. Next sync: one change and one removal.
 		switch {
 		case body["cursor"] == nil && f.page == 0:
@@ -210,5 +216,32 @@ func TestSealer(t *testing.T) {
 	box[len(box)-1] ^= 1
 	if _, err := s.open(box); err == nil {
 		t.Fatal("tampered token opened")
+	}
+}
+
+// Right after connecting, Plaid may not have the history yet: it shows up a
+// little later without the person doing anything.
+func TestHistoryArrivesLater(t *testing.T) {
+	s, fp := newTestService(t)
+	s.retryEvery = 20 * time.Millisecond
+	fp.notYet = 2
+	ctx := context.Background()
+	if err := s.Connect(ctx, "alice", "public-sandbox-x", "ins_1", "Bank"); err != nil {
+		t.Fatal(err)
+	}
+	count := func() (n int) {
+		_ = s.pool.QueryRow(ctx, `SELECT count(*) FROM fin_transactions`).Scan(&n)
+		return
+	}
+	for i := 0; i < 200 && count() == 0; i++ {
+		time.Sleep(10 * time.Millisecond)
+	}
+	if n := count(); n != 6 {
+		t.Fatalf("transactions after waiting: %d", n)
+	}
+	var cursor string
+	_ = s.pool.QueryRow(ctx, `SELECT cursor FROM fin_items`).Scan(&cursor)
+	if cursor != "c2" {
+		t.Fatalf("cursor: %q", cursor)
 	}
 }

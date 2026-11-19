@@ -72,14 +72,29 @@ export function useFin() {
 
   useEffect(() => {
     load().then((d) => {
-      const banks = d?.overview?.banks || [];
+      const o = d?.overview;
+      const banks = o?.banks || [];
       const old = banks.some((b) => !b.synced_at || Date.now() - new Date(b.synced_at).getTime() > STALE_MS);
-      if (d?.enabled && old && !refreshed.current) {
+      // Connected but no transactions yet: Plaid may still be loading them.
+      const waiting = banks.length > 0 && !o.recent.length;
+      if (d?.enabled && (old || waiting) && !refreshed.current) {
         refreshed.current = true;
         refresh();
       }
     });
   }, [load, refresh]);
+
+  // While transactions are on their way, look again every few seconds (about 3 minutes).
+  const waiting = !!state.overview?.banks?.length && !state.overview.recent.length;
+  useEffect(() => {
+    if (!waiting) return;
+    let n = 0;
+    const id = setInterval(() => {
+      if (++n > 20) clearInterval(id);
+      else load();
+    }, 9000);
+    return () => clearInterval(id);
+  }, [waiting, load]);
 
   // Opens Plaid. With itemId, fixes a bank that needs a new sign-in.
   const connect = useCallback(

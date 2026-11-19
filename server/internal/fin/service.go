@@ -28,6 +28,10 @@ type Service struct {
 	plaid *Plaid
 	seal  *sealer
 	now   func() time.Time
+	// Right after connecting Plaid may not have the history yet: try again
+	// every retryEvery, retryTimes times, in the background.
+	retryEvery time.Duration
+	retryTimes int
 }
 
 // New returns nil (AI Fin off) when plaid is nil. tokenKey encrypts access tokens.
@@ -39,7 +43,7 @@ func New(pool *pgxpool.Pool, plaid *Plaid, tokenKey string) (*Service, error) {
 	if err != nil {
 		return nil, err
 	}
-	return &Service{pool: pool, plaid: plaid, seal: s, now: time.Now}, nil
+	return &Service{pool: pool, plaid: plaid, seal: s, now: time.Now, retryEvery: 10 * time.Second, retryTimes: 18}, nil
 }
 
 func (s *Service) Enabled() bool { return s != nil }
@@ -93,7 +97,30 @@ func (s *Service) Connect(ctx context.Context, user, publicToken, institutionID,
 		return err
 	}
 	it := &item{id: id, user: user, access: access}
-	return s.sync(ctx, it)
+	if err := s.sync(ctx, it); err != nil {
+		return err
+	}
+	if it.cursor == "" {
+		go s.waitForHistory(it)
+	}
+	return nil
+}
+
+// waitForHistory syncs again until Plaid has the transaction history (it
+// takes from seconds to a few minutes after connecting).
+func (s *Service) waitForHistory(it *item) {
+	for i := 0; i < s.retryTimes; i++ {
+		time.Sleep(s.retryEvery)
+		ctx, cancel := context.WithTimeout(context.Background(), time.Minute)
+		err := s.sync(ctx, it)
+		cancel()
+		if err != nil {
+			log.Printf("[FIN] waiting for history %s: %v", it.id, err)
+		}
+		if it.cursor != "" {
+			return
+		}
+	}
 }
 
 // Refresh syncs every bank of the user that wasn't synced in the last minutes.
@@ -103,7 +130,7 @@ func (s *Service) Refresh(ctx context.Context, user string, olderThan time.Durat
 		return err
 	}
 	for _, it := range items {
-		if it.syncedAt != nil && s.now().Sub(*it.syncedAt) < olderThan {
+		if it.cursor != "" && it.syncedAt != nil && s.now().Sub(*it.syncedAt) < olderThan {
 			continue
 		}
 		if err := s.sync(ctx, it); err != nil {
@@ -202,6 +229,9 @@ func (s *Service) syncItem(ctx context.Context, it *item) error {
 		for _, r := range p.Removed {
 			removed = append(removed, r.TransactionID)
 		}
+		if p.UpdateStatus == "NOT_READY" && len(p.Added) == 0 {
+			break // Plaid is still loading: keep the old cursor and try later
+		}
 		cursor = p.NextCursor
 		if !p.HasMore {
 			break
@@ -272,7 +302,11 @@ func (s *Service) syncItem(ctx context.Context, it *item) error {
 	if _, err := tx.Exec(ctx, `UPDATE fin_items SET cursor = $2, synced_at = now(), status = 'ok' WHERE id = $1`, it.id, cursor); err != nil {
 		return err
 	}
-	return tx.Commit(ctx)
+	if err := tx.Commit(ctx); err != nil {
+		return err
+	}
+	it.cursor = cursor
+	return nil
 }
 
 func clip(s string, n int) string {
