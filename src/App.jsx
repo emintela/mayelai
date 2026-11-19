@@ -3,6 +3,7 @@ import { ThemeProvider } from "@/components/theme-provider";
 import ProtectedLayout from "@/layouts/ProtectedLayout";
 import SignInPage from "@/pages/SignInPage";
 import SignUpPage from "@/pages/SignUpPage";
+import { PrivacyPage, TermsPage } from "@/pages/LegalPage";
 import ChatPage from "@/pages/chat/ChatPage";
 import WebSearchPage from "@/pages/WebSearchPage";
 import SettingsPage from "@/pages/SettingsPage";
@@ -49,6 +50,8 @@ function App() {
         <Route path="/" element={<Navigate to="/chat" replace />} />
         <Route path="/sign-in/*" element={<SignInPage />} />
         <Route path="/sign-up/*" element={<SignUpPage />} />
+        <Route path="/privacy" element={<PrivacyPage />} />
+        <Route path="/terms" element={<TermsPage />} />
         {/* Shared loan link: public, no account */}
         <Route path="/l/:token" element={<PublicLoanPage />} />
         <Route path="/c/:token" element={<PublicCollectionPage />} />
