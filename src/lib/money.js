@@ -66,3 +66,25 @@ export const collectionLink = (token) => `${window.location.origin}/c/${token}`;
 export const KINDS = ["funeral", "wedding", "birth", "medical", "other"];
 export const groupLink = (token, memberToken) => `${window.location.origin}/g/${token}${memberToken ? `?m=${memberToken}` : ""}`;
 export const FREQUENCIES = ["monthly", "biweekly", "weekly"];
+export const requestLink = (token) => `${window.location.origin}/r/${token}`;
+
+// One-tap pay links for the person paying (amount filled in where the app allows it).
+export function payLinks(payTo, cents, currency, note = "") {
+  if (!payTo) return [];
+  const amt = (cents / 100).toFixed(2).replace(/\.00$/, "");
+  const out = [];
+  if (payTo.cashtag && currency === "USD")
+    out.push({ name: "Cash App", handle: `$${payTo.cashtag}`, href: `https://cash.app/$${encodeURIComponent(payTo.cashtag)}/${amt}` });
+  if (payTo.venmo && currency === "USD")
+    out.push({
+      name: "Venmo",
+      handle: `@${payTo.venmo}`,
+      href: `https://venmo.com/?txn=pay&audience=private&recipients=${encodeURIComponent(payTo.venmo)}&amount=${amt}&note=${encodeURIComponent(note || "onSave")}`,
+    });
+  if (payTo.paypal)
+    out.push({ name: "PayPal", handle: `paypal.me/${payTo.paypal}`, href: `https://paypal.me/${encodeURIComponent(payTo.paypal)}/${amt}${currency}` });
+  if (payTo.zelle) out.push({ name: "Zelle", handle: payTo.zelle, copy: payTo.zelle });
+  if (payTo.interac) out.push({ name: "Interac", handle: payTo.interac, copy: payTo.interac });
+  if (payTo.mobile_money) out.push({ name: "Mobile money", handle: payTo.mobile_money, copy: payTo.mobile_money });
+  return out;
+}

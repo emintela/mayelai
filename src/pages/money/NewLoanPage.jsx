@@ -7,6 +7,7 @@ import { useLang, useT } from "@/lib/i18n";
 import { CURRENCIES, todayISO } from "@/lib/money";
 import { cn } from "@/lib/utils";
 import { Card, LangSwitch, inputCls, labelCls } from "./parts";
+import { ContactsButton } from "@/components/contacts";
 
 const NAME_KEY = "mayelai.ownerName";
 const CURRENCY_KEY = "mayelai.currency";
@@ -105,7 +106,13 @@ export default function NewLoanPage() {
           </div>
 
           <div>
-            <label className={labelCls} htmlFor="name">{t("theirName")}</label>
+            <div className="flex items-end justify-between gap-2">
+              <label className={labelCls} htmlFor="name">{t("theirName")}</label>
+              <ContactsButton
+                onPick={([p]) => setForm((f) => ({ ...f, counterparty_name: p.name, counterparty_phone: p.phone || f.counterparty_phone }))}
+                className="mb-1 rounded-full px-2 py-0.5 text-xs font-medium text-primary hover:bg-primary/10"
+              />
+            </div>
             <input id="name" required maxLength={80} value={form.counterparty_name} onChange={set("counterparty_name")} className={inputCls} />
           </div>
           <div>

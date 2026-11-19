@@ -25,6 +25,7 @@ import (
 	"mayelai/server/internal/db"
 	"mayelai/server/internal/money"
 	"mayelai/server/internal/openai"
+	"mayelai/server/internal/push"
 	"mayelai/server/internal/routes"
 )
 
@@ -80,6 +81,7 @@ func main() {
 	routes.Register(app, routes.Deps{
 		Chat: svc, Store: store, Billing: bill, Config: cfg, PerMinute: cfg.PerMinuteLimit,
 		Money: money.NewStore(store.Pool()), MoneyAI: moneyAI,
+		Push: push.New(store.Pool(), cfg.VAPIDPublicKey, cfg.VAPIDPrivateKey, pushSubject(cfg)),
 	})
 
 	if cfg.StaticDir != "" {
@@ -159,4 +161,12 @@ func canonicalHost(canonical string, aliases []string) fiber.Handler {
 		}
 		return c.Redirect().Status(status).To("https://" + canonical + c.OriginalURL())
 	}
+}
+
+// pushSubject identifies us to the push services: VAPID_SUBJECT, else the app's https URL.
+func pushSubject(cfg config.Config) string {
+	if cfg.VAPIDSubject != "" {
+		return cfg.VAPIDSubject
+	}
+	return cfg.AppURL
 }

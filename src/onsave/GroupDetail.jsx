@@ -25,6 +25,7 @@ import { useLang, useT } from "@/lib/i18n";
 import { formatDate, groupLink, smsURL, todayISO, whatsappURL } from "@/lib/money";
 import { cn } from "@/lib/utils";
 import { AIDraftBox } from "@/pages/money/parts";
+import { ContactsButton, SendToPeople } from "@/components/contacts";
 import {
   Avatar,
   ErrorNote,
@@ -94,12 +95,32 @@ function Forming({ g, act, created }) {
   const [name, setName] = useState("");
   const [phone, setPhone] = useState("");
   const [start, setStart] = useState(todayISO());
+  const [fresh, setFresh] = useState([]); // people just added from contacts, to send their invite
   const organizer = g.role === "organizer";
   const ids = g.members.map((m) => m.id);
   const move = (i, d) => {
     const next = [...ids];
     [next[i], next[i + d]] = [next[i + d], next[i]];
     act(() => api.groupAction(g.id, "order", { member_ids: next }));
+  };
+  // Adds each picked contact as a member, then lists them with their personal invite.
+  const addContacts = async (people) => {
+    const before = new Set(g.members.map((m) => m.id));
+    let last = null;
+    let failure = null;
+    await act(async () => {
+      for (const p of people) {
+        try {
+          last = await api.groupAction(g.id, "members", { name: p.name, phone: p.phone });
+        } catch (err) {
+          failure = err; // e.g. the group is full: keep the ones already added
+          break;
+        }
+      }
+      if (!last) throw failure;
+      return last;
+    });
+    if (last) setFresh(last.members.filter((m) => !before.has(m.id)));
   };
   const invite = organizer
     ? t("inviteMessage", { name: g.name, amount: money(g.amount_cents, g.currency, lang), freq: t(`osFreq_${g.frequency}`), link: groupLink(g.share_token) })
@@ -172,6 +193,19 @@ function Forming({ g, act, created }) {
             </li>
           ))}
         </ol>
+        {organizer && (
+          <ContactsButton multiple onPick={addContacts} className={cn(btnGhost, "w-full")}>
+            {t("osAddFromContacts")}
+          </ContactsButton>
+        )}
+        {organizer && (
+          <SendToPeople
+            tone="onsave"
+            people={fresh}
+            onClose={() => setFresh([])}
+            message={(m) => t("personalLinkMessage", { name: m.name, group: g.name, link: groupLink(g.share_token, m.member_token) })}
+          />
+        )}
         {organizer && (
           <details className="rounded-2xl border border-dashed border-os-line p-3">
             <summary className="cursor-pointer text-sm font-semibold">{t("osAddSomeone")}</summary>

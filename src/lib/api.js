@@ -80,6 +80,20 @@ export function useApi() {
       joinGroup: (token, body) => request("post", `/api/onsave/join/${encodeURIComponent(token)}`, { data: body }),
       claimMember: (token, memberToken) => request("post", "/api/onsave/claim", { data: { token, member_token: memberToken } }),
       activity: () => request("get", "/api/onsave/activity"),
+      // Money requests (request / give) and how people pay you
+      listRequests: () => request("get", "/api/money/requests"),
+      createRequests: (body) => request("post", "/api/money/requests", { data: body }),
+      getRequest: (id) => request("get", `/api/money/requests/${encodeURIComponent(id)}`),
+      requestAction: (id, action, today) =>
+        request("post", `/api/money/requests/${encodeURIComponent(id)}/${action}`, { params: today ? { today } : undefined }),
+      claimRequest: (token) => request("post", "/api/money/requests/claim", { data: { token } }),
+      getPayProfile: () => request("get", "/api/money/profile"),
+      savePayProfile: (p) => request("put", "/api/money/profile", { data: p }),
+      // Push alerts
+      pushKey: () => request("get", "/api/push/key"),
+      pushSubscribe: (subscription, lang) => request("post", "/api/push/subscribe", { data: { subscription, lang } }),
+      pushUnsubscribe: (endpoint) => request("post", "/api/push/unsubscribe", { data: { endpoint } }),
+      pushTest: () => request("post", "/api/push/test"),
       getBilling: () => request("get", "/api/billing"),
       startCheckout: () => request("post", "/api/billing/checkout"),
       openPortal: () => request("post", "/api/billing/portal"),
@@ -128,6 +142,13 @@ export const publicGroupApi = {
     axios
       .post(`/api/public/groups/${encodeURIComponent(token)}/paid`, { round, method }, memberHeader(memberToken))
       .then((r) => r.data),
+};
+
+// Money request link (no account): view and answer.
+export const publicRequestApi = {
+  get: (token) => axios.get(`/api/public/requests/${encodeURIComponent(token)}`).then((r) => r.data),
+  act: (token, action, body = {}) =>
+    axios.post(`/api/public/requests/${encodeURIComponent(token)}/${action}`, body).then((r) => r.data),
 };
 
 // Plain error text (no emoji) for forms.

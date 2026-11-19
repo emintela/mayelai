@@ -18,6 +18,7 @@ import (
 	"mayelai/server/internal/db"
 	"mayelai/server/internal/money"
 	"mayelai/server/internal/openai"
+	"mayelai/server/internal/push"
 )
 
 // Deps are the services the routes use. Billing is nil when Stripe isn't configured.
@@ -28,7 +29,8 @@ type Deps struct {
 	Config    config.Config
 	PerMinute int
 	Money     *money.Store
-	MoneyAI   money.AI // nil = AI features unavailable
+	MoneyAI   money.AI      // nil = AI features unavailable
+	Push      *push.Service // nil = push alerts off (no VAPID keys)
 }
 
 // Register mounts all /api routes (every one requires a signed-in Clerk user)
@@ -63,6 +65,7 @@ func Register(app *fiber.App, d Deps) {
 	api.Delete("/conversations", deleteAllConversations(store))
 	api.Put("/messages/:id/feedback", setFeedback(store))
 	registerMoney(api, d, chatLimiter)
+	registerPush(api, d)
 	api.Get("/billing", getBilling(d))
 	api.Post("/billing/checkout", startCheckout(d.Billing))
 	api.Post("/billing/portal", openPortal(d.Billing))

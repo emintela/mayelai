@@ -36,7 +36,11 @@ type Config struct {
 	AuthorizedOrigins []string // allowed values for the token's azp claim; empty = don't check
 
 	// Billing (Stripe). Billing is disabled unless all three keys are set.
-	AppURL              string // public URL of the frontend, for Stripe redirects
+	AppURL string // public URL of the frontend, for Stripe redirects
+	// Web push (alerts). Both keys empty = push off. Subject: mailto: or https: URL.
+	VAPIDPublicKey      string
+	VAPIDPrivateKey     string
+	VAPIDSubject        string
 	StripeSecretKey     string
 	StripeWebhookSecret string
 	StripeProPriceID    string // recurring Price for the Pro plan (price_...)
@@ -86,6 +90,9 @@ func Load() Config {
 		AuthorizedOrigins: list(os.Getenv("CLERK_AUTHORIZED_PARTIES")),
 
 		AppURL:              strings.TrimRight(env("APP_URL", "http://localhost:5173"), "/"),
+		VAPIDPublicKey:      os.Getenv("VAPID_PUBLIC_KEY"),
+		VAPIDPrivateKey:     os.Getenv("VAPID_PRIVATE_KEY"),
+		VAPIDSubject:        os.Getenv("VAPID_SUBJECT"),
 		StripeSecretKey:     os.Getenv("STRIPE_SECRET_KEY"),
 		StripeWebhookSecret: os.Getenv("STRIPE_WEBHOOK_SECRET"),
 		StripeProPriceID:    os.Getenv("STRIPE_PRO_PRICE_ID"),

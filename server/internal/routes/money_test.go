@@ -5,18 +5,21 @@ import (
 	"encoding/json"
 	"fmt"
 	"io"
+	"net/http"
 	"net/http/httptest"
 	"strings"
 	"sync"
 	"testing"
 	"time"
 
+	webpush "github.com/SherClockHolmes/webpush-go"
 	"github.com/gofiber/fiber/v3"
 
 	"mayelai/server/internal/auth"
 	"mayelai/server/internal/config"
 	"mayelai/server/internal/db"
 	"mayelai/server/internal/money"
+	"mayelai/server/internal/push"
 	"mayelai/server/internal/testdb"
 )
 
@@ -50,6 +53,38 @@ func (f *fakeAI) GroupDraft(ctx context.Context, in money.GroupInput) (string, m
 }
 
 func moneyApp(t *testing.T, freeLimit int, msgLimit int) (*fiber.App, *fakeAI, *db.Store) {
+	app, ai, store, _ := moneyAppWithPush(t, freeLimit, msgLimit)
+	return app, ai, store
+}
+
+// pushLog records the push notifications the app tried to send.
+type pushLog struct {
+	mu   sync.Mutex
+	msgs []push.Message
+}
+
+func (p *pushLog) all() []push.Message {
+	p.mu.Lock()
+	defer p.mu.Unlock()
+	return append([]push.Message(nil), p.msgs...)
+}
+
+// waitFor polls until a message whose title contains text was sent.
+func (p *pushLog) waitFor(t *testing.T, text string) push.Message {
+	t.Helper()
+	for i := 0; i < 100; i++ {
+		for _, m := range p.all() {
+			if strings.Contains(m.Title, text) {
+				return m
+			}
+		}
+		time.Sleep(20 * time.Millisecond)
+	}
+	t.Fatalf("no push with %q; got %+v", text, p.all())
+	return push.Message{}
+}
+
+func moneyAppWithPush(t *testing.T, freeLimit int, msgLimit int) (*fiber.App, *fakeAI, *db.Store, *pushLog) {
 	_, url := testdb.New(t)
 	ctx := context.Background()
 	store, err := db.Open(ctx, url)
@@ -59,7 +94,21 @@ func moneyApp(t *testing.T, freeLimit int, msgLimit int) (*fiber.App, *fakeAI, *
 	t.Cleanup(store.Close)
 	ai := &fakeAI{}
 	cfg := config.Config{FreeOpenLoans: freeLimit, FreeOpenCollections: freeLimit, FreeActiveGroups: freeLimit, Free: config.Limits{Messages: msgLimit}}
-	d := Deps{Store: store, Config: cfg, Money: money.NewStore(store.Pool()), MoneyAI: ai}
+	priv, pub, err := push.GenerateKeys()
+	if err != nil {
+		t.Fatal(err)
+	}
+	log := &pushLog{}
+	ps := push.New(store.Pool(), pub, priv, "mailto:test@example.com").WithSender(
+		func(payload []byte, _ *webpush.Subscription, _ *webpush.Options) (*http.Response, error) {
+			var m push.Message
+			_ = json.Unmarshal(payload, &m)
+			log.mu.Lock()
+			log.msgs = append(log.msgs, m)
+			log.mu.Unlock()
+			return &http.Response{StatusCode: 201, Body: io.NopCloser(strings.NewReader(""))}, nil
+		})
+	d := Deps{Store: store, Config: cfg, Money: money.NewStore(store.Pool()), MoneyAI: ai, Push: ps}
 
 	app := fiber.New()
 	// Test auth: X-Test-User stands in for a verified Clerk user.
@@ -72,7 +121,8 @@ func moneyApp(t *testing.T, freeLimit int, msgLimit int) (*fiber.App, *fakeAI, *
 	registerPublicMoney(app, d)
 	api := app.Group("/api", auth.Require())
 	registerMoney(api, d, func(c fiber.Ctx) error { return c.Next() })
-	return app, ai, store
+	registerPush(api, d)
+	return app, ai, store, log
 }
 
 func req(t *testing.T, app *fiber.App, method, path, user, body string) (int, map[string]any) {

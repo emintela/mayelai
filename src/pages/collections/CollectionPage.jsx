@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useState } from "react";
 import { Link, useNavigate, useParams } from "react-router-dom";
+import { ContactsButton, SendToPeople } from "@/components/contacts";
 import { ArrowLeft, BellRing, Link2, Loader2, Megaphone, RefreshCw, Trash2 } from "lucide-react";
 import { errorText, useApi } from "@/lib/api";
 import { useLang, useT } from "@/lib/i18n";
@@ -121,8 +122,15 @@ function AddContribution({ col, onChange }) {
       <p className="mt-1 text-xs text-muted-foreground">{t("addContributionBody")}</p>
       <form onSubmit={submit} className="mt-3 grid gap-2 sm:grid-cols-2">
         <div>
-          <label className={labelCls}>{t("theirName")}</label>
+          <div className="flex items-end justify-between gap-2">
+            <label className={labelCls}>{t("theirName")}</label>
+            <ContactsButton
+              onPick={([p]) => setForm((f) => ({ ...f, name: p.name, phone: p.phone }))}
+              className="mb-1 rounded-full px-2 py-0.5 text-xs font-medium text-primary hover:bg-primary/10"
+            />
+          </div>
           <input required maxLength={80} value={form.name} onChange={(e) => setForm({ ...form, name: e.target.value })} className={inputCls} />
+          {form.phone && <p className="mt-1 text-xs text-muted-foreground">{form.phone}</p>}
         </div>
         <div>
           <label className={labelCls}>{t("amount")} ({col.currency})</label>
@@ -159,6 +167,7 @@ export default function CollectionPage() {
   const [col, setCol] = useState(null);
   const [error, setError] = useState(null);
   const [actionError, setActionError] = useState(null);
+  const [invitees, setInvitees] = useState([]); // picked from contacts
 
   const load = useCallback(() => {
     api.getCollection(id).then(setCol).catch((e) => setError(e?.response?.status === 404 ? "Not found." : errorText(e)));
@@ -223,6 +232,14 @@ export default function CollectionPage() {
           </h2>
           <p className="text-sm text-muted-foreground">{t("shareCollectionBody")}</p>
           <p className="break-all rounded-xl bg-muted p-3 text-sm">{shareText}</p>
+          <ContactsButton
+            multiple
+            onPick={setInvitees}
+            className="rounded-full border border-primary/40 px-4 py-2 text-sm font-medium text-primary hover:bg-primary/10"
+          >
+            {t("osInviteFromContacts")}
+          </ContactsButton>
+          <SendToPeople people={invitees} message={() => shareText} onClose={() => setInvitees([])} />
           <div className="flex flex-wrap items-center gap-2">
             <SendButtons text={shareText} />
             <button

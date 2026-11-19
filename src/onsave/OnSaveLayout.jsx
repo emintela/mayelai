@@ -3,17 +3,18 @@ import { Navigate, NavLink, Outlet, useLocation } from "react-router-dom";
 import { SignedIn, SignedOut } from "@clerk/clerk-react";
 import { HandCoins, Home, Plus, User, Users } from "lucide-react";
 import { useApi } from "@/lib/api";
-import { useT } from "@/lib/i18n";
+import { useLang, useT } from "@/lib/i18n";
+import { refreshPush } from "@/lib/push";
 import { cn } from "@/lib/utils";
 import { claimRemembered } from "./memberStore";
 import { Spinner, useOnSaveChrome } from "./ui";
 
 // Full-screen flows (paying, creating a group, loan or collection) hide the tab bar.
-const fullScreen = (path) => /^\/onsave\/(new|groups\/[^/]+\/pay|money\/new|collections\/new)\/?$/.test(path);
+const fullScreen = (path) => /^\/onsave\/(new|groups\/[^/]+\/pay|money\/new|money\/send|collections\/new)\/?$/.test(path);
 
 // The + button creates whatever the current section is about.
 function plusFor(path, t) {
-  if (path.startsWith("/onsave/money")) return ["/onsave/money/new", t("osNewLoan")];
+  if (path.startsWith("/onsave/money")) return ["/onsave/money/send?mode=request", t("osmRequest")];
   if (path.startsWith("/onsave/collections")) return ["/onsave/collections/new", t("osNewCollection")];
   return ["/onsave/new", t("osNewGroup")];
 }
@@ -67,9 +68,14 @@ function Shell() {
   const api = useApi();
   const { pathname } = useLocation();
   const [ready, setReady] = useState(false);
+  const lang = useLang();
   useEffect(() => {
     claimRemembered(api).finally(() => setReady(true));
   }, [api]);
+  // Alerts already on: keep the server's copy and its language up to date.
+  useEffect(() => {
+    refreshPush(api, lang);
+  }, [api, lang]);
   useEffect(() => {
     window.scrollTo(0, 0);
   }, [pathname]);

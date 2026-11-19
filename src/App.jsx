@@ -6,7 +6,6 @@ import SignUpPage from "@/pages/SignUpPage";
 import ChatPage from "@/pages/chat/ChatPage";
 import WebSearchPage from "@/pages/WebSearchPage";
 import SettingsPage from "@/pages/SettingsPage";
-import MoneyPage from "@/pages/money/MoneyPage";
 import NewLoanPage from "@/pages/money/NewLoanPage";
 import LoanPage from "@/pages/money/LoanPage";
 import PublicLoanPage from "@/pages/money/PublicLoanPage";
@@ -25,6 +24,10 @@ import Activity from "@/onsave/Activity";
 import Me from "@/onsave/Me";
 import Invite from "@/onsave/Invite";
 import FamilyMoney from "@/onsave/FamilyMoney";
+import MoneyHome from "@/onsave/money/MoneyHome";
+import MoneyFlow from "@/onsave/money/MoneyFlow";
+import RequestDetail from "@/onsave/money/RequestDetail";
+import RequestReply from "@/onsave/money/RequestReply";
 
 // Old Likelemba addresses now open in onSave.
 function OldGroup() {
@@ -49,6 +52,8 @@ function App() {
         <Route path="/l/:token" element={<PublicLoanPage />} />
         <Route path="/c/:token" element={<PublicCollectionPage />} />
         <Route path="/g/:token" element={<Invite />} />
+        {/* Money request link: answer without an account */}
+        <Route path="/r/:token" element={<RequestReply />} />
         {/* onSave: the likelemba app (its own mobile layout, no chat sidebar) */}
         <Route path="/onsave/welcome" element={<Welcome />} />
         <Route path="/onsave" element={<OnSaveLayout />}>
@@ -60,8 +65,10 @@ function App() {
           <Route path="activity" element={<Activity />} />
           <Route path="me" element={<Me />} />
           {/* Money and Collections, as part of onSave */}
+          <Route path="money" element={<MoneyHome />} />
+          <Route path="money/send" element={<MoneyFlow />} />
+          <Route path="money/requests/:id" element={<RequestDetail />} />
           <Route element={<FamilyMoney />}>
-            <Route path="money" element={<MoneyPage />} />
             <Route path="money/new" element={<NewLoanPage />} />
             <Route path="money/:id" element={<LoanPage />} />
             <Route path="collections" element={<CollectionsPage />} />

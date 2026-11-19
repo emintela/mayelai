@@ -7,6 +7,7 @@ import { useApi } from "@/lib/api";
 import { setLang, useLang, useT } from "@/lib/i18n";
 import { cn } from "@/lib/utils";
 import { Avatar, LogoMark, Wordmark, btnBrand, card } from "./ui";
+import { AlertsCard, PayHandlesCard } from "./money/shared";
 
 // Chrome/Android fire beforeinstallprompt once; keep it for the Install button.
 let deferredPrompt = null;
@@ -146,6 +147,8 @@ export default function Me() {
       </section>
 
       <Install />
+      <AlertsCard />
+      <PayHandlesCard />
 
       <section className={cn(card, "divide-y divide-os-line-soft overflow-hidden")}>
         <Link to="/settings" className={row}>

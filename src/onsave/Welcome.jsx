@@ -4,8 +4,8 @@ import { useT } from "@/lib/i18n";
 import { LangSwitch } from "@/pages/money/parts";
 import { LogoMark, Wordmark, useOnSaveChrome } from "./ui";
 
-// Sign-up / sign-in come back to onSave afterwards.
-export const authURL = (kind) => `/${kind}?redirect_url=${encodeURIComponent(`${window.location.origin}/onsave`)}`;
+// Sign-up / sign-in come back to onSave (or the given page) afterwards.
+export const authURL = (kind, path = "/onsave") => `/${kind}?redirect_url=${encodeURIComponent(`${window.location.origin}${path}`)}`;
 
 function Art() {
   const t = useT();
