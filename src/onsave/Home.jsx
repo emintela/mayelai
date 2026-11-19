@@ -1,19 +1,18 @@
 import { useEffect, useState } from "react";
 import { Link } from "react-router-dom";
-import { useUser } from "@clerk/clerk-react";
-import { Bell, Check, CheckCircle2, ChevronRight, HandCoins, HeartHandshake, Plus, RefreshCw, Sparkles } from "lucide-react";
+import { ArrowLeftRight, Bell, Check, CheckCircle2, HeartHandshake, Plus, RefreshCw, Send, UserPlus } from "lucide-react";
 import { errorText, useApi } from "@/lib/api";
 import { useLang, useT } from "@/lib/i18n";
 import { formatDate } from "@/lib/money";
 import { cn } from "@/lib/utils";
 import { lastSeenActivity } from "./Activity";
 import {
-  Avatar,
   AvatarStack,
   Chip,
   ErrorNote,
   GroupChip,
   LinkCard,
+  LogoMark,
   Spinner,
   btnMoney,
   card,
@@ -122,29 +121,30 @@ function Due({ items }) {
   );
 }
 
-// Money and Collections: the other family money tools inside onSave.
-function MoreTools() {
+// Shortcuts to the other onSave tools.
+function QuickActions() {
   const t = useT();
-  const tools = [
-    ["/onsave/ask", Sparkles, t("osaAsk"), t("osaCardBody"), "bg-os-deep text-os-mint"],
-    ["/onsave/money", HandCoins, t("osLoans"), t("osLoansBody"), "bg-os-money-soft text-os-money"],
-    ["/onsave/collections", HeartHandshake, t("collections"), t("osCollectionsBody"), "bg-os-brand-soft text-os-brand"],
+  const actions = [
+    ["/onsave/new", UserPlus, t("saveCreateGroup")],
+    ["/onsave/money/send?mode=request", Send, t("saveRequest")],
+    ["/onsave/money/send?mode=send", ArrowLeftRight, t("saveSend")],
+    ["/onsave/collections", HeartHandshake, t("saveCollections")],
   ];
   return (
-    <section className="space-y-2.5">
-      <h2 className="text-[15px] font-bold">{t("osMoreTools")}</h2>
-      {tools.map(([to, Icon, title, body, tone]) => (
-        <LinkCard key={to} to={to} className="flex items-center gap-3 rounded-2xl px-3.5 py-3">
-          <span className={cn("flex h-11 w-11 shrink-0 items-center justify-center rounded-2xl", tone)}>
-            <Icon className="h-5 w-5" aria-hidden="true" />
-          </span>
-          <span className="min-w-0 flex-1">
-            <span className="block text-[15px] font-semibold">{title}</span>
-            <span className="block truncate text-[13px] text-os-muted">{body}</span>
-          </span>
-          <ChevronRight className="h-4 w-4 text-os-muted" aria-hidden="true" />
-        </LinkCard>
-      ))}
+    <section>
+      <h2 className="mb-2.5 text-[15px] font-bold">{t("saveQuick")}</h2>
+      <div className="grid grid-cols-4 gap-2.5">
+        {actions.map(([to, Icon, title]) => (
+          <Link
+            key={to}
+            to={to}
+            className={cn(card, "flex aspect-square flex-col items-center justify-center gap-1.5 rounded-2xl px-1 text-center transition hover:border-os-brand/40 active:scale-[0.97]")}
+          >
+            <Icon className="h-6 w-6 text-os-brand" strokeWidth={1.9} aria-hidden="true" />
+            <span className="text-[11px] font-semibold leading-tight">{title}</span>
+          </Link>
+        ))}
+      </div>
     </section>
   );
 }
@@ -152,7 +152,6 @@ function MoreTools() {
 export default function Home() {
   const api = useApi();
   const t = useT();
-  const { user } = useUser();
   const [groups, setGroups] = useState(null);
   const [unread, setUnread] = useState(false);
   const [error, setError] = useState(null);
@@ -168,30 +167,26 @@ export default function Home() {
       .catch(() => {});
   }, [api]);
 
-  const first = user?.firstName || user?.fullName || "";
   const due = groups ? dueItems(groups) : [];
   const confirm = groups ? toConfirm(groups) : [];
   const hasActive = groups?.some((g) => g.status === "active" && g.you);
 
   return (
     <div className="space-y-5 pt-2">
-      <header className="flex items-center justify-between">
-        <div className="flex items-center gap-3">
-          <Avatar name={user?.fullName || first} src={user?.hasImage ? user.imageUrl : undefined} size={44} />
-          <div>
-            <p className="text-[13px] text-os-muted">{t("osHello")}</p>
-            <p className="os-display text-xl font-bold leading-tight">{first}</p>
+      <header className="flex items-center justify-between gap-3">
+        <div className="flex min-w-0 items-center gap-3">
+          <span className="flex h-11 w-11 shrink-0 items-center justify-center rounded-2xl bg-os-deep">
+            <LogoMark size={26} />
+          </span>
+          <div className="min-w-0">
+            <h1 className="os-display text-2xl font-extrabold leading-tight">onSave</h1>
+            <p className="truncate text-[12px] text-os-muted">{t("saveSubtitle")}</p>
           </div>
         </div>
-        <div className="flex gap-2">
-        <Link to="/onsave/ask" aria-label={t("osaAsk")} className={cn(iconBtn, "bg-os-deep text-os-mint hover:bg-os-deep")}>
-          <Sparkles className="h-5 w-5" />
-        </Link>
         <Link to="/onsave/activity" aria-label={t("osNotifications")} className={cn(iconBtn, "relative")}>
           <Bell className="h-5 w-5" />
           {unread && <span className="absolute right-[11px] top-[10px] h-2.5 w-2.5 rounded-full border-2 border-os-card bg-[#d9467f]" />}
         </Link>
-        </div>
       </header>
 
       <ErrorNote>{error}</ErrorNote>
@@ -199,6 +194,7 @@ export default function Home() {
       {groups && (
         <>
           <Hero groups={groups} />
+          <QuickActions />
 
           {due.length > 0 ? (
             <Due items={due} />
@@ -239,7 +235,6 @@ export default function Home() {
               ))}
             </section>
           )}
-          <MoreTools />
         </>
       )}
     </div>

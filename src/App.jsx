@@ -17,6 +17,9 @@ import PublicCollectionPage from "@/pages/collections/PublicCollectionPage";
 import OnSaveLayout from "@/onsave/OnSaveLayout";
 import Welcome from "@/onsave/Welcome";
 import Home from "@/onsave/Home";
+import Dashboard from "@/onsave/Dashboard";
+import FinPage from "@/onsave/fin/FinPage";
+import BudgetPage from "@/onsave/fin/BudgetPage";
 import Groups from "@/onsave/Groups";
 import GroupDetail from "@/onsave/GroupDetail";
 import Pay from "@/onsave/Pay";
@@ -61,7 +64,10 @@ function App() {
         {/* onSave: the likelemba app (its own mobile layout, no chat sidebar) */}
         <Route path="/onsave/welcome" element={<Welcome />} />
         <Route path="/onsave" element={<OnSaveLayout />}>
-          <Route index element={<Home />} />
+          <Route index element={<Dashboard />} />
+          <Route path="save" element={<Home />} />
+          <Route path="fin" element={<FinPage />} />
+          <Route path="budget" element={<BudgetPage />} />
           <Route path="groups" element={<Groups />} />
           <Route path="groups/:id" element={<GroupDetail />} />
           <Route path="groups/:id/pay" element={<Pay />} />

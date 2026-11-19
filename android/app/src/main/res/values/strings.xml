@@ -1,0 +1,7 @@
+<?xml version='1.0' encoding='utf-8'?>
+<resources>
+    <string name="app_name">onSave</string>
+    <string name="title_activity_main">onSave</string>
+    <string name="package_name">com.mayelai.onsave</string>
+    <string name="custom_url_scheme">com.mayelai.onsave</string>
+</resources>

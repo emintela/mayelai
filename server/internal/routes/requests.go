@@ -129,7 +129,43 @@ func registerRequests(m fiber.Router, d Deps) {
 
 func registerPush(api fiber.Router, d Deps) {
 	api.Get("/push/key", func(c fiber.Ctx) error {
-		return c.JSON(fiber.Map{"enabled": d.Push.Enabled(), "key": d.Push.PublicKey()})
+		return c.JSON(fiber.Map{
+			"enabled": d.Push.Enabled(), "key": d.Push.PublicKey(),
+			"native": fiber.Map{"ios": d.Push.NativeEnabled("ios"), "android": d.Push.NativeEnabled("android")},
+		})
+	})
+	// The onSave phone app registers its push token here.
+	api.Post("/push/device", func(c fiber.Ctx) error {
+		var body struct {
+			Token    string `json:"token"`
+			Platform string `json:"platform"`
+			Lang     string `json:"lang"`
+		}
+		if err := c.Bind().JSON(&body); err != nil {
+			return jsonError(c, fiber.StatusBadRequest, "Invalid JSON body")
+		}
+		if body.Platform != "ios" && body.Platform != "android" {
+			return jsonError(c, fiber.StatusBadRequest, "Unknown platform.")
+		}
+		if err := d.Push.RegisterDevice(c.Context(), auth.UserID(c), body.Platform, body.Token, body.Lang); err != nil {
+			if errors.Is(err, push.ErrInvalid) {
+				return jsonError(c, fiber.StatusBadRequest, "This phone's notification details look wrong. Please try again.")
+			}
+			return internal(c, err)
+		}
+		return c.JSON(fiber.Map{"ok": true, "enabled": d.Push.NativeEnabled(body.Platform)})
+	})
+	api.Post("/push/device/remove", func(c fiber.Ctx) error {
+		var body struct {
+			Token string `json:"token"`
+		}
+		if err := c.Bind().JSON(&body); err != nil {
+			return jsonError(c, fiber.StatusBadRequest, "Invalid JSON body")
+		}
+		if err := d.Push.RemoveDevice(c.Context(), auth.UserID(c), body.Token); err != nil {
+			return internal(c, err)
+		}
+		return c.JSON(fiber.Map{"ok": true})
 	})
 	api.Post("/push/subscribe", func(c fiber.Ctx) error {
 		var body struct {

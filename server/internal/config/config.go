@@ -38,12 +38,17 @@ type Config struct {
 	// Billing (Stripe). Billing is disabled unless all three keys are set.
 	AppURL string // public URL of the frontend, for Stripe redirects
 	// Web push (alerts). Both keys empty = push off. Subject: mailto: or https: URL.
-	VAPIDPublicKey      string
-	VAPIDPrivateKey     string
-	VAPIDSubject        string
-	StripeSecretKey     string
-	StripeWebhookSecret string
-	StripeProPriceID    string // recurring Price for the Pro plan (price_...)
+	VAPIDPublicKey  string
+	VAPIDPrivateKey string
+	VAPIDSubject    string
+	// Phone app alerts: Firebase service account JSON (Android); Apple .p8 key, key ID, team ID, bundle ID (iPhone).
+	FCMServiceAccount                         string
+	APNsKey, APNsKeyID, APNsTeamID, APNsTopic string
+	// AI Fin (Plaid). PlaidEnv: sandbox | production. FinTokenKey: base64 32-byte key encrypting Plaid tokens.
+	PlaidClientID, PlaidSecret, PlaidEnv, FinTokenKey string
+	StripeSecretKey                                   string
+	StripeWebhookSecret                               string
+	StripeProPriceID                                  string // recurring Price for the Pro plan (price_...)
 
 	// Cost controls
 	MaxOutputTokens int // cap on each reply's length
@@ -93,6 +98,15 @@ func Load() Config {
 		VAPIDPublicKey:      os.Getenv("VAPID_PUBLIC_KEY"),
 		VAPIDPrivateKey:     os.Getenv("VAPID_PRIVATE_KEY"),
 		VAPIDSubject:        os.Getenv("VAPID_SUBJECT"),
+		FCMServiceAccount:   os.Getenv("FCM_SERVICE_ACCOUNT"),
+		APNsKey:             os.Getenv("APNS_KEY"),
+		APNsKeyID:           os.Getenv("APNS_KEY_ID"),
+		APNsTeamID:          os.Getenv("APNS_TEAM_ID"),
+		APNsTopic:           env("APNS_TOPIC", "com.mayelai.onsave"),
+		PlaidClientID:       os.Getenv("PLAID_CLIENT_ID"),
+		PlaidSecret:         os.Getenv("PLAID_SECRET"),
+		PlaidEnv:            env("PLAID_ENV", "sandbox"),
+		FinTokenKey:         os.Getenv("FIN_TOKEN_KEY"),
 		StripeSecretKey:     os.Getenv("STRIPE_SECRET_KEY"),
 		StripeWebhookSecret: os.Getenv("STRIPE_WEBHOOK_SECRET"),
 		StripeProPriceID:    os.Getenv("STRIPE_PRO_PRICE_ID"),

@@ -1,6 +1,7 @@
 import { useCallback, useSyncExternalStore } from "react";
 import { onsaveEn, onsaveFr } from "@/onsave/strings";
 import { moneyEn, moneyFr } from "@/onsave/moneyStrings";
+import { finEn, finFr } from "@/onsave/fin/finStrings";
 
 // Tiny i18n for the Money module: English and French (Lingala coming soon).
 // The choice is remembered per browser.
@@ -531,8 +532,8 @@ const dict = {
   },
 };
 
-Object.assign(dict.en, onsaveEn, moneyEn);
-Object.assign(dict.fr, onsaveFr, moneyFr);
+Object.assign(dict.en, onsaveEn, moneyEn, finEn);
+Object.assign(dict.fr, onsaveFr, moneyFr, finFr);
 
 export function useT() {
   const lang = useLang();

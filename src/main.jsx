@@ -3,6 +3,7 @@ import { createRoot } from "react-dom/client";
 import { BrowserRouter, useNavigate } from "react-router-dom";
 import { ClerkProvider } from "@clerk/clerk-react";
 import App from "./App";
+import { isNativeApp, startNativeShell } from "./lib/native";
 import "./index.css";
 
 const CLERK_PUBLISHABLE_KEY = import.meta.env.VITE_CLERK_PUBLISHABLE_KEY;
@@ -34,9 +35,11 @@ createRoot(document.getElementById("root")).render(
   </StrictMode>
 );
 
+startNativeShell();
+
 // Installable app (onSave) + offline page. Production only, so development
-// never serves stale files.
-if (import.meta.env.PROD && "serviceWorker" in navigator) {
+// never serves stale files. The phone app doesn't need it.
+if (import.meta.env.PROD && !isNativeApp() && "serviceWorker" in navigator) {
   window.addEventListener("load", () => {
     navigator.serviceWorker.register("/sw.js").catch(() => {});
   });

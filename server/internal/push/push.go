@@ -1,6 +1,8 @@
-// Package push sends Web Push notifications (Android, desktop, and iPhone
-// when the app is added to the Home Screen). It is optional: without VAPID
-// keys every method is a no-op and Enabled() is false.
+// Package push sends alerts:
+//   - Web Push (Android, desktop, and iPhone when the site is added to the Home Screen);
+//   - the onSave phone app, through Apple (iPhone) and Firebase (Android), see native.go.
+//
+// Each part is optional. Without any keys New returns nil and every method is a no-op.
 package push
 
 import (
@@ -10,6 +12,7 @@ import (
 	"io"
 	"log"
 	"net/http"
+	"regexp"
 	"strings"
 	"time"
 
@@ -22,18 +25,52 @@ type Service struct {
 	publicKey, privateKey string
 	subject               string
 	send                  func(payload []byte, sub *webpush.Subscription, o *webpush.Options) (*http.Response, error)
+
+	// Phone app: platform ("ios" | "android") → sender. Returns gone=true for a dead token.
+	native map[string]func(ctx context.Context, token string, m Message) (bool, error)
 }
 
-// New returns nil when the keys aren't set (push disabled). subject is a
-// mailto: or https: URL identifying the sender to the push services.
-func New(pool *pgxpool.Pool, publicKey, privateKey, subject string) *Service {
-	if publicKey == "" || privateKey == "" {
+type Config struct {
+	// Web Push. Subject is a mailto: or https: URL identifying the sender.
+	VAPIDPublicKey, VAPIDPrivateKey, Subject string
+	// Android: the Firebase service account JSON.
+	FCMServiceAccount string
+	// iPhone: the .p8 key text, its key ID, the Apple team ID, and the app's bundle ID.
+	APNsKey, APNsKeyID, APNsTeamID, APNsTopic string
+}
+
+// New returns nil when nothing is configured. A part whose keys don't load
+// is left off and logged.
+func New(pool *pgxpool.Pool, cfg Config) *Service {
+	s := &Service{pool: pool, send: webpush.SendNotification, native: map[string]func(context.Context, string, Message) (bool, error){}}
+	if cfg.VAPIDPublicKey != "" && cfg.VAPIDPrivateKey != "" {
+		s.publicKey, s.privateKey, s.subject = cfg.VAPIDPublicKey, cfg.VAPIDPrivateKey, cfg.Subject
+	}
+	if cfg.FCMServiceAccount != "" {
+		if f, err := newFCM(cfg.FCMServiceAccount); err != nil {
+			log.Printf("[PUSH] Android alerts off: %v", err)
+		} else {
+			s.native["android"] = f.send
+		}
+	}
+	if cfg.APNsKey != "" {
+		if a, err := newAPNs(cfg.APNsKey, cfg.APNsKeyID, cfg.APNsTeamID, cfg.APNsTopic); err != nil {
+			log.Printf("[PUSH] iPhone alerts off: %v", err)
+		} else {
+			s.native["ios"] = a.send
+		}
+	}
+	if s.publicKey == "" && len(s.native) == 0 {
 		return nil
 	}
-	return &Service{pool: pool, publicKey: publicKey, privateKey: privateKey, subject: subject, send: webpush.SendNotification}
+	return s
 }
 
-func (s *Service) Enabled() bool { return s != nil }
+// Enabled reports whether Web Push works (browsers).
+func (s *Service) Enabled() bool { return s != nil && s.publicKey != "" }
+
+// NativeEnabled reports whether the phone app can get alerts on this platform.
+func (s *Service) NativeEnabled(platform string) bool { return s != nil && s.native[platform] != nil }
 
 func (s *Service) PublicKey() string {
 	if s == nil {
@@ -54,7 +91,7 @@ type Subscription struct {
 var ErrInvalid = errors.New("invalid subscription")
 
 func (s *Service) Subscribe(ctx context.Context, user string, sub Subscription, lang string) error {
-	if s == nil {
+	if !s.Enabled() {
 		return nil
 	}
 	if !strings.HasPrefix(sub.Endpoint, "https://") || len(sub.Endpoint) > 1000 ||
@@ -103,6 +140,12 @@ func (s *Service) Notify(user string, msg func(lang string) Message) {
 }
 
 func (s *Service) notify(ctx context.Context, user string, msg func(lang string) Message) error {
+	if err := s.notifyDevices(ctx, user, msg); err != nil {
+		log.Printf("[PUSH] phones: %v", err)
+	}
+	if !s.Enabled() {
+		return nil
+	}
 	rows, err := s.pool.Query(ctx, `SELECT endpoint, p256dh, auth, lang FROM push_subscriptions WHERE user_id = $1`, user)
 	if err != nil {
 		return err
@@ -139,6 +182,78 @@ func (s *Service) notify(ctx context.Context, user string, msg func(lang string)
 		}
 	}
 	return nil
+}
+
+// ---------- phone app ----------
+
+var tokenOK = regexp.MustCompile(`^[A-Za-z0-9_:\-.]{20,400}$`)
+
+// RegisterDevice saves the phone's token (from the app's push plugin).
+// A token moves to whoever signed in on that phone last.
+func (s *Service) RegisterDevice(ctx context.Context, user, platform, token, lang string) error {
+	if !s.NativeEnabled(platform) {
+		return nil
+	}
+	if !tokenOK.MatchString(token) {
+		return ErrInvalid
+	}
+	if lang != "fr" {
+		lang = "en"
+	}
+	_, err := s.pool.Exec(ctx, `INSERT INTO push_devices (token, user_id, platform, lang) VALUES ($1, $2, $3, $4)
+		ON CONFLICT (token) DO UPDATE SET user_id = $2, platform = $3, lang = $4, updated_at = now()`,
+		token, user, platform, lang)
+	return err
+}
+
+func (s *Service) RemoveDevice(ctx context.Context, user, token string) error {
+	if s == nil {
+		return nil
+	}
+	_, err := s.pool.Exec(ctx, `DELETE FROM push_devices WHERE token = $1 AND user_id = $2`, token, user)
+	return err
+}
+
+func (s *Service) notifyDevices(ctx context.Context, user string, msg func(lang string) Message) error {
+	if len(s.native) == 0 {
+		return nil
+	}
+	rows, err := s.pool.Query(ctx, `SELECT token, platform, lang FROM push_devices WHERE user_id = $1`, user)
+	if err != nil {
+		return err
+	}
+	type dev struct{ token, platform, lang string }
+	var devs []dev
+	for rows.Next() {
+		var d dev
+		if err := rows.Scan(&d.token, &d.platform, &d.lang); err != nil {
+			rows.Close()
+			return err
+		}
+		devs = append(devs, d)
+	}
+	rows.Close()
+	for _, d := range devs {
+		send := s.native[d.platform]
+		if send == nil {
+			continue
+		}
+		gone, err := send(ctx, d.token, msg(d.lang))
+		if err != nil {
+			log.Printf("[PUSH] %s: %v", d.platform, err)
+			continue
+		}
+		if gone {
+			_, _ = s.pool.Exec(ctx, `DELETE FROM push_devices WHERE token = $1`, d.token)
+		}
+	}
+	return nil
+}
+
+// WithNativeSender replaces the Apple/Firebase call for one platform (tests).
+func (s *Service) WithNativeSender(platform string, f func(ctx context.Context, token string, m Message) (bool, error)) *Service {
+	s.native[platform] = f
+	return s
 }
 
 // GenerateKeys makes a new VAPID key pair (private, public).

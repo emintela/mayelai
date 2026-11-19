@@ -16,6 +16,7 @@ import (
 	"mayelai/server/internal/chat"
 	"mayelai/server/internal/config"
 	"mayelai/server/internal/db"
+	"mayelai/server/internal/fin"
 	"mayelai/server/internal/money"
 	"mayelai/server/internal/openai"
 	"mayelai/server/internal/push"
@@ -31,6 +32,7 @@ type Deps struct {
 	Money     *money.Store
 	MoneyAI   money.AI      // nil = AI features unavailable
 	Push      *push.Service // nil = push alerts off (no VAPID keys)
+	Fin       *fin.Service  // nil = bank connections off (no Plaid keys)
 }
 
 // Register mounts all /api routes (every one requires a signed-in Clerk user)
@@ -66,6 +68,7 @@ func Register(app *fiber.App, d Deps) {
 	api.Put("/messages/:id/feedback", setFeedback(store))
 	registerMoney(api, d, chatLimiter)
 	registerPush(api, d)
+	registerFin(api, d)
 	api.Get("/billing", getBilling(d))
 	api.Post("/billing/checkout", startCheckout(d.Billing))
 	api.Post("/billing/portal", openPortal(d.Billing))

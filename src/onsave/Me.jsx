@@ -5,6 +5,7 @@ import { useTheme } from "next-themes";
 import { ChevronRight, Download, LogOut, MessageSquare } from "lucide-react";
 import { useApi } from "@/lib/api";
 import { setLang, useLang, useT } from "@/lib/i18n";
+import { isNativeApp } from "@/lib/native";
 import { cn } from "@/lib/utils";
 import { Avatar, LogoMark, Wordmark, btnBrand, card } from "./ui";
 import { AlertsCard, PayHandlesCard } from "./money/shared";
@@ -146,7 +147,7 @@ export default function Me() {
         />
       </section>
 
-      <Install />
+      {!isNativeApp() && <Install />}
       <AlertsCard />
       <PayHandlesCard />
 

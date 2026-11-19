@@ -1,0 +1,14 @@
+{
+  "appId": "com.mayelai.onsave",
+  "appName": "onSave",
+  "webDir": "dist",
+  "server": {
+    "url": "https://mayelai.com/onsave",
+    "allowNavigation": ["mayelai.com", "clerk.mayelai.com", "accounts.mayelai.com"]
+  },
+  "plugins": {
+    "PushNotifications": {
+      "presentationOptions": ["badge", "sound", "alert"]
+    }
+  }
+}

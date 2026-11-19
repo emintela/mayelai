@@ -59,8 +59,15 @@ func moneyApp(t *testing.T, freeLimit int, msgLimit int) (*fiber.App, *fakeAI, *
 
 // pushLog records the push notifications the app tried to send.
 type pushLog struct {
-	mu   sync.Mutex
-	msgs []push.Message
+	mu      sync.Mutex
+	msgs    []push.Message
+	devices []string // "platform:token" for each phone-app alert
+}
+
+func (p *pushLog) phones() []string {
+	p.mu.Lock()
+	defer p.mu.Unlock()
+	return append([]string(nil), p.devices...)
 }
 
 func (p *pushLog) all() []push.Message {
@@ -99,7 +106,7 @@ func moneyAppWithPush(t *testing.T, freeLimit int, msgLimit int) (*fiber.App, *f
 		t.Fatal(err)
 	}
 	log := &pushLog{}
-	ps := push.New(store.Pool(), pub, priv, "mailto:test@example.com").WithSender(
+	ps := push.New(store.Pool(), push.Config{VAPIDPublicKey: pub, VAPIDPrivateKey: priv, Subject: "mailto:test@example.com"}).WithSender(
 		func(payload []byte, _ *webpush.Subscription, _ *webpush.Options) (*http.Response, error) {
 			var m push.Message
 			_ = json.Unmarshal(payload, &m)
@@ -108,6 +115,16 @@ func moneyAppWithPush(t *testing.T, freeLimit int, msgLimit int) (*fiber.App, *f
 			log.mu.Unlock()
 			return &http.Response{StatusCode: 201, Body: io.NopCloser(strings.NewReader(""))}, nil
 		})
+	// Phone app: tokens starting with "dead" belong to an uninstalled app.
+	for _, platform := range []string{"ios", "android"} {
+		ps.WithNativeSender(platform, func(_ context.Context, token string, m push.Message) (bool, error) {
+			log.mu.Lock()
+			log.msgs = append(log.msgs, m)
+			log.devices = append(log.devices, platform+":"+token)
+			log.mu.Unlock()
+			return strings.HasPrefix(token, "dead"), nil
+		})
+	}
 	d := Deps{Store: store, Config: cfg, Money: money.NewStore(store.Pool()), MoneyAI: ai, Push: ps}
 
 	app := fiber.New()

@@ -23,6 +23,7 @@ import (
 	"mayelai/server/internal/chat"
 	"mayelai/server/internal/config"
 	"mayelai/server/internal/db"
+	"mayelai/server/internal/fin"
 	"mayelai/server/internal/money"
 	"mayelai/server/internal/openai"
 	"mayelai/server/internal/push"
@@ -78,10 +79,26 @@ func main() {
 	if cfg.OpenAIKey != "" {
 		moneyAI = &money.OpenAI{Client: openai.New(cfg.OpenAIKey), Model: cfg.ChatModel, ReasoningEffort: cfg.ReasoningEffort}
 	}
+	// AI Fin: on when Plaid keys and the token key are set.
+	var finSvc *fin.Service
+	if cfg.PlaidClientID != "" && cfg.PlaidSecret != "" {
+		var err error
+		finSvc, err = fin.New(store.Pool(), fin.NewPlaid(cfg.PlaidClientID, cfg.PlaidSecret, cfg.PlaidEnv), cfg.FinTokenKey)
+		if err != nil {
+			log.Printf("[FIN] bank connections off: %v", err)
+			finSvc = nil
+		}
+	}
+
 	routes.Register(app, routes.Deps{
+		Fin:  finSvc,
 		Chat: svc, Store: store, Billing: bill, Config: cfg, PerMinute: cfg.PerMinuteLimit,
 		Money: money.NewStore(store.Pool()), MoneyAI: moneyAI,
-		Push: push.New(store.Pool(), cfg.VAPIDPublicKey, cfg.VAPIDPrivateKey, pushSubject(cfg)),
+		Push: push.New(store.Pool(), push.Config{
+			VAPIDPublicKey: cfg.VAPIDPublicKey, VAPIDPrivateKey: cfg.VAPIDPrivateKey, Subject: pushSubject(cfg),
+			FCMServiceAccount: cfg.FCMServiceAccount,
+			APNsKey:           cfg.APNsKey, APNsKeyID: cfg.APNsKeyID, APNsTeamID: cfg.APNsTeamID, APNsTopic: cfg.APNsTopic,
+		}),
 	})
 
 	if cfg.StaticDir != "" {

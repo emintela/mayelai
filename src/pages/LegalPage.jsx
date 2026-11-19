@@ -3,7 +3,7 @@ import { Link } from "react-router-dom";
 // Public privacy policy and terms. Linked from Google's sign-in screen, so no account needed.
 
 const CONTACT = "hello@mayelai.com";
-const UPDATED = "November 19, 2026";
+const UPDATED = "November 20, 2026";
 
 function Shell({ title, children }) {
   return (
@@ -40,6 +40,7 @@ export function PrivacyPage() {
         <li><b>Account:</b> your name, email address and profile picture when you sign up, including through Google sign-in.</li>
         <li><b>Chats:</b> the messages and files you send to the Mayele assistant, and its answers, so you can see your history.</li>
         <li><b>Money records:</b> savings groups, loans, requests and collections you create: names, amounts, dates and notes you enter. Mayel&apos;AI keeps records only; it does not hold or move money.</li>
+        <li><b>Bank accounts you connect (AI Fin):</b> through Plaid, with your permission, we receive read-only account names, balances and transactions. We never see your bank password and can never move money. Disconnect a bank at any time in AI Fin and we delete its data.</li>
         <li><b>Contacts you choose:</b> when you pick people from your phone, we receive only the names and phone numbers you select, never your whole address book.</li>
         <li><b>Payment handles:</b> Cash App, Venmo, PayPal or similar handles you add so people can pay you.</li>
         <li><b>Notifications:</b> if you turn on alerts, a technical address from your browser used to send them.</li>
@@ -49,6 +50,7 @@ export function PrivacyPage() {
       <h2>How we use it</h2>
       <ul>
         <li>To run the app: show your chats, groups and records, and send the requests and reminders you ask for.</li>
+        <li>To show your balances, spending and tips in AI Fin.</li>
         <li>To answer your questions with AI. Chat messages are processed by OpenAI, and web searches by SerpAPI.</li>
         <li>To keep the service secure and prevent abuse.</li>
       </ul>
@@ -56,6 +58,7 @@ export function PrivacyPage() {
       <h2>Who processes data for us</h2>
       <ul>
         <li>Clerk (sign-in and accounts)</li>
+        <li>Plaid (bank connections; see plaid.com/legal for how Plaid handles your data)</li>
         <li>OpenAI (AI answers) and SerpAPI (web search)</li>
         <li>Neon (database) and Fly.io (hosting), in the European Union</li>
         <li>Stripe (payments)</li>
