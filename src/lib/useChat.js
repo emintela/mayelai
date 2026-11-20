@@ -76,7 +76,7 @@ export function useChat(conversationId, basePath = "/chat") {
         id: tempId,
         role: "user",
         content: text,
-        metadata: mode === "search" ? { mode } : undefined,
+        metadata: mode !== "chat" ? { mode } : undefined,
         localAttachments: local.length ? local : undefined,
       },
     ]);

@@ -75,7 +75,7 @@ func TestProcessAttachments(t *testing.T) {
 func TestBuildPromptWithImage(t *testing.T) {
 	s := testService()
 	ps, _ := s.processAttachments([]Attachment{{Name: "p.png", Data: b64(tinyPNG)}})
-	msgs := s.buildPrompt(&testConv, nil, "what is this?", ps)
+	msgs := s.buildPrompt(&testConv, nil, "what is this?", ps, "")
 	raw, _ := json.Marshal(msgs[len(msgs)-1])
 	var got struct {
 		Content []openai.Part `json:"content"`

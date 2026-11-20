@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
-import { Link, useNavigate, useParams } from "react-router-dom";
-import { Brain, History, Loader2, MessageSquare, Search, SquarePen, Sparkles, Trash2, X } from "lucide-react";
+import { Link, useNavigate, useParams, useSearchParams } from "react-router-dom";
+import { Brain, History, Loader2, MessageSquare, Search, SquarePen, Sparkles, Trash2, Wallet, X } from "lucide-react";
 import ChatComposer from "@/components/chat-composer";
 import { MessageActions, MessageAttachments } from "@/components/chat-messages";
 import { ConversationsProvider, useConversations } from "@/context/ConversationsContext";
@@ -12,6 +12,53 @@ import { LogoMark, iconBtn } from "../ui";
 // Mayele: the Mayel'AI assistant inside onSave. Same conversations as the web chat.
 
 const SUGGESTIONS = ["osaIdea1", "osaIdea2", "osaIdea3", "osaIdea4"];
+const FIN_SUGGESTIONS = ["chatFinIdea1", "chatFinIdea2", "chatFinIdea3", "chatFinIdea4"];
+const FIN_KEY = "mayelai.chatFinance";
+
+// "General" or "My Finances": remembered on this device; ?fin=1 opens My Finances.
+function useFinanceMode() {
+  const [params] = useSearchParams();
+  const [on, setOn] = useState(() => {
+    if (params.get("fin") === "1") return true;
+    try {
+      return localStorage.getItem(FIN_KEY) === "1";
+    } catch {
+      return false;
+    }
+  });
+  const set = (v) => {
+    setOn(v);
+    try {
+      localStorage.setItem(FIN_KEY, v ? "1" : "0");
+    } catch {
+      /* private mode */
+    }
+  };
+  return [on, set];
+}
+
+function FinanceSwitch({ on, setOn }) {
+  const t = useT();
+  return (
+    <div role="tablist" className="mx-auto grid w-full max-w-lg grid-cols-2 gap-1 rounded-full bg-os-line-soft p-1">
+      {[
+        [false, t("chatGeneral")],
+        [true, t("chatMyFin")],
+      ].map(([v, label]) => (
+        <button
+          key={label}
+          type="button"
+          role="tab"
+          aria-selected={on === v}
+          onClick={() => setOn(v)}
+          className={cn("h-9 rounded-full text-[13px] font-semibold transition", on === v ? "bg-os-btn text-white shadow-sm" : "text-os-muted")}
+        >
+          {label}
+        </button>
+      ))}
+    </div>
+  );
+}
 
 function Thinking({ mode }) {
   const t = useT();
@@ -104,8 +151,12 @@ function AskScreen() {
   const t = useT();
   const { conversationId } = useParams();
   const [history, setHistory] = useState(false);
-  const { messages, pending, loadingChat, loadError, searchQuery, showSearchButton, quota, mode, setMode, chatContainerRef, send, handleFeedback } =
+  const [finance, setFinance] = useFinanceMode();
+  const { messages, pending, loadingChat, loadError, searchQuery, showSearchButton, quota, mode, setMode, chatContainerRef, send: rawSend, handleFeedback } =
     useChat(conversationId, "/onsave/ask");
+  // In My Finances, a normal message goes with the person's money data.
+  const send = (text, m = "chat", attachments) => rawSend(text, finance && m === "chat" ? "finance" : m, attachments);
+  const ideas = finance ? FIN_SUGGESTIONS : SUGGESTIONS;
   const isEmpty = messages.length === 0 && !pending && !loadingChat && !loadError;
   const remaining = quota && quota.limit > 0 ? Math.max(quota.limit - quota.used, 0) : null;
 
@@ -118,7 +169,7 @@ function AskScreen() {
       menuPlacement="up"
       mode={mode}
       onModeChange={setMode}
-      placeholder={t("osaPlaceholder")}
+      placeholder={t(finance ? "chatFinPlaceholder" : "osaPlaceholder")}
     />
   );
 
@@ -148,6 +199,9 @@ function AskScreen() {
           <SquarePen className="h-5 w-5" />
         </Link>
       </header>
+      <div className="shrink-0 px-4 pt-3">
+        <FinanceSwitch on={finance} setOn={setFinance} />
+      </div>
 
       <div ref={chatContainerRef} className="min-h-0 flex-1 overflow-y-auto overscroll-contain">
         <div className="mx-auto flex min-h-full w-full max-w-lg flex-col gap-4 px-4 py-5">
@@ -156,17 +210,17 @@ function AskScreen() {
               <span className="flex h-16 w-16 items-center justify-center rounded-[22px] bg-os-deep shadow-[0_12px_30px_rgba(36,26,79,0.25)]">
                 <LogoMark size={40} />
               </span>
-              <h1 className="os-display mt-4 text-[26px] font-extrabold">{t("osaHello")}</h1>
-              <p className="mt-1 max-w-xs text-[14px] text-os-muted">{t("osaIntro")}</p>
+              <h1 className="os-display mt-4 text-[26px] font-extrabold">{t(finance ? "chatFinHello" : "osaHello")}</h1>
+              <p className="mt-1 max-w-xs text-[14px] text-os-muted">{t(finance ? "chatFinIntro" : "osaIntro")}</p>
               <div className="mt-6 grid w-full gap-2">
-                {SUGGESTIONS.map((k) => (
+                {ideas.map((k) => (
                   <button
                     key={k}
                     type="button"
                     onClick={() => send(t(k), "chat")}
                     className="flex items-center gap-3 rounded-2xl border border-os-line bg-os-card px-4 py-3 text-left text-[14px] font-medium transition hover:border-os-brand/40"
                   >
-                    <Sparkles className="h-4 w-4 shrink-0 text-os-brand" /> {t(k)}
+                    {finance ? <Wallet className="h-4 w-4 shrink-0 text-os-brand" /> : <Sparkles className="h-4 w-4 shrink-0 text-os-brand" />} {t(k)}
                   </button>
                 ))}
               </div>
@@ -193,6 +247,11 @@ function AskScreen() {
                   m.role === "user" ? "rounded-br-md bg-os-btn text-white" : "rounded-bl-md border border-os-line bg-os-card text-os-ink"
                 )}
               >
+                {m.metadata?.mode === "finance" && (
+                  <span className="mb-1 inline-flex items-center gap-1 text-xs opacity-80">
+                    <Wallet className="h-3 w-3" /> {t("chatFinBadge")}
+                  </span>
+                )}
                 {m.metadata?.mode === "search" && (
                   <span className="mb-1 inline-flex items-center gap-1 text-xs opacity-80">
                     <Brain className="h-3 w-3" /> {t("osaAiSearch")}

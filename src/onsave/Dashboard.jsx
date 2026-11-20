@@ -15,7 +15,7 @@ function ChatCard() {
   const t = useT();
   return (
     <Link
-      to="/onsave/ask"
+      to="/onsave/ask?fin=1"
       className="relative block overflow-hidden rounded-[28px] bg-gradient-to-br from-[#5a3fd4] via-[#6d4fe0] to-[#9a7bf5] p-5 text-white shadow-[0_14px_30px_rgba(90,63,212,0.3)] transition active:scale-[0.99]"
     >
       <svg width="150" height="110" viewBox="0 0 150 110" aria-hidden="true" className="absolute -bottom-1 right-2 opacity-60">
@@ -128,7 +128,11 @@ export default function Dashboard() {
   useEffect(() => {
     api
       .activity()
-      .then((d) => setUnread(d.events.some((e) => !e.you && e.at > lastSeenActivity())))
+      .then((d) => d.events.some((e) => !e.you && e.at > lastSeenActivity()) && setUnread(true))
+      .catch(() => {});
+    api
+      .finAlerts()
+      .then((d) => d.unread > 0 && setUnread(true))
       .catch(() => {});
   }, [api]);
   const first = user?.firstName || "";
@@ -144,7 +148,7 @@ export default function Dashboard() {
           <span className="os-display text-[22px] font-extrabold tracking-tight">Mayel&apos;AI</span>
         </span>
         <span className="flex items-center gap-2">
-          <Link to="/onsave/activity" aria-label={t("osNotifications")} className="relative inline-flex h-11 w-11 items-center justify-center rounded-full text-os-ink hover:bg-os-line-soft">
+          <Link to="/onsave/alerts" aria-label={t("alTitle")} className="relative inline-flex h-11 w-11 items-center justify-center rounded-full text-os-ink hover:bg-os-line-soft">
             <Bell className="h-[22px] w-[22px]" />
             {unread && <span className="absolute right-[10px] top-[9px] h-2.5 w-2.5 rounded-full border-2 border-os-bg bg-[#d9467f]" />}
           </Link>

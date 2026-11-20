@@ -20,9 +20,22 @@ import (
 )
 
 const (
-	ModeChat   = "chat"
-	ModeSearch = "search"
+	ModeChat    = "chat"
+	ModeSearch  = "search"
+	ModeFinance = "finance" // "My Finances": Mayele also sees the person's money (banks, budgets, onSave)
 )
+
+// FinanceContext returns a short text about the person's money for "My Finances" chats.
+type FinanceContext func(ctx context.Context, userID string) (string, error)
+
+const financeGuide = `The user switched on "My Finances". Below is their real financial data from Mayel'AI (bank accounts connected through Plaid, budgets, and their onSave savings groups, loans and money requests). Use it to answer with specific numbers, names and dates from this data. Rules:
+- Never invent accounts, amounts or transactions that aren't below. If something isn't in the data, say so and suggest connecting a bank in AI Fin or adding it in onSave.
+- Give practical, step-by-step plans (for example how to save a target amount this month: which categories to cut, by how much, weekly limits).
+- Spending amounts are money out; income is money in. Amounts are in the currency shown.
+- You can't move money, change budgets or contact anyone. Point to where they can do it in the app: AI Fin (accounts, transactions), Budgets, onSave (groups, request and send).
+- You are not a licensed financial advisor; for investments, taxes or debt problems, give general education and suggest a professional when it matters.
+
+`
 
 // LimitError is returned when the user has used up a daily limit.
 type LimitError struct {
@@ -39,9 +52,10 @@ var (
 )
 
 type Service struct {
-	cfg   config.Config
-	store *db.Store
-	oa    *openai.Client
+	cfg     config.Config
+	store   *db.Store
+	oa      *openai.Client
+	finance FinanceContext // nil: "My Finances" answers without data
 
 	bg          sync.WaitGroup // background summarizations
 	summarizing sync.Map       // conversation ID -> struct{}, avoids duplicate work
@@ -49,6 +63,12 @@ type Service struct {
 
 func New(cfg config.Config, store *db.Store, oa *openai.Client) *Service {
 	return &Service{cfg: cfg, store: store, oa: oa}
+}
+
+// WithFinance lets "My Finances" chats see the person's money.
+func (s *Service) WithFinance(f FinanceContext) *Service {
+	s.finance = f
+	return s
 }
 
 // Wait blocks until background work (summaries) has finished. Call on shutdown.
@@ -91,7 +111,7 @@ func (s *Service) Send(ctx context.Context, userID, conversationID, text, mode s
 	if len([]rune(text)) > s.cfg.MaxInputChars {
 		return nil, ErrTooLong
 	}
-	if mode != ModeSearch {
+	if mode != ModeSearch && mode != ModeFinance {
 		mode = ModeChat
 	}
 	files, err := s.processAttachments(attachments)
@@ -141,6 +161,19 @@ func (s *Service) Send(ctx context.Context, userID, conversationID, text, mode s
 	}
 	meta := map[string]any{"model": model, "mode": mode}
 
+	// My Finances: today's picture of their money, read fresh for every message.
+	finance := ""
+	if mode == ModeFinance {
+		finance = "(No financial data is available right now.)"
+		if s.finance != nil {
+			if f, err := s.finance(ctx, userID); err != nil {
+				log.Printf("chat: finance context: %v", err)
+			} else {
+				finance = f
+			}
+		}
+	}
+
 	content := st.CachedResponse
 	t1 := time.Now()
 	if content != "" {
@@ -149,7 +182,7 @@ func (s *Service) Send(ctx context.Context, userID, conversationID, text, mode s
 	} else {
 		res, err := s.oa.Chat(ctx, openai.ChatRequest{
 			Model:               model,
-			Messages:            s.buildPrompt(conv, st.History, text, files),
+			Messages:            s.buildPrompt(conv, st.History, text, files, finance),
 			MaxCompletionTokens: s.cfg.MaxOutputTokens,
 			ReasoningEffort:     s.cfg.ReasoningEffort,
 			PromptCacheKey:      "mayelai-chat",
@@ -185,9 +218,9 @@ func (s *Service) Send(ctx context.Context, userID, conversationID, text, mode s
 	}
 
 	userMsg := db.Message{Role: "user", Content: text}
-	if mode == ModeSearch || len(files) > 0 {
+	if mode != ModeChat || len(files) > 0 {
 		userMsg.Metadata = map[string]any{}
-		if mode == ModeSearch {
+		if mode != ModeChat {
 			userMsg.Metadata["mode"] = mode
 		}
 		if len(files) > 0 {
@@ -224,12 +257,15 @@ func (s *Service) Send(ctx context.Context, userID, conversationID, text, mode s
 // buildPrompt assembles: stable system prompt (first, so OpenAI's prompt
 // caching discount applies), the rolling summary of older messages, the
 // recent unsummarized messages, then the new user message.
-func (s *Service) buildPrompt(conv *db.Conversation, history []db.Message, text string, files []processed) []openai.Message {
+func (s *Service) buildPrompt(conv *db.Conversation, history []db.Message, text string, files []processed, finance string) []openai.Message {
 	system := s.cfg.SystemPrompt
 	if conv.Summary != "" {
 		// Appended after the fixed prompt so the cached prefix is unchanged.
 		system += "\n\nEarlier in this conversation (older messages were summarized; " +
 			"treat these as things the user already told you or you already answered):\n" + conv.Summary
+	}
+	if finance != "" {
+		system += "\n\n" + financeGuide + finance
 	}
 	msgs := []openai.Message{{Role: "system", Content: system}}
 	// Hard cap in case summarization is lagging behind.

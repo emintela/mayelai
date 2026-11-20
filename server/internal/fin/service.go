@@ -32,6 +32,7 @@ type Service struct {
 	// every retryEvery, retryTimes times, in the background.
 	retryEvery time.Duration
 	retryTimes int
+	notifier   Notifier // new alerts go here (push)
 }
 
 // New returns nil (AI Fin off) when plaid is nil. tokenKey encrypts access tokens.
@@ -130,7 +131,7 @@ func (s *Service) Refresh(ctx context.Context, user string, olderThan time.Durat
 		return err
 	}
 	for _, it := range items {
-		if it.cursor != "" && it.syncedAt != nil && s.now().Sub(*it.syncedAt) < olderThan {
+		if olderThan > 0 && it.cursor != "" && it.syncedAt != nil && s.now().Sub(*it.syncedAt) < olderThan {
 			continue
 		}
 		if err := s.sync(ctx, it); err != nil {
@@ -202,18 +203,25 @@ func (s *Service) item(ctx context.Context, user, id string) (*item, error) {
 }
 
 func (s *Service) sync(ctx context.Context, it *item) error {
-	err := s.syncItem(ctx, it)
+	added, err := s.syncItem(ctx, it)
 	if needsRelink(err) {
 		_, _ = s.pool.Exec(ctx, `UPDATE fin_items SET status = 'relink' WHERE id = $1`, it.id)
 		return nil
 	}
-	return err
-}
-
-func (s *Service) syncItem(ctx context.Context, it *item) error {
-	accounts, err := s.plaid.Accounts(ctx, it.access)
 	if err != nil {
 		return err
+	}
+	now := s.now().UTC()
+	if err := s.checkAlerts(ctx, it.user, time.Date(now.Year(), now.Month(), now.Day(), 0, 0, 0, 0, time.UTC), added); err != nil {
+		log.Printf("[FIN] alerts for %s: %v", it.id, err)
+	}
+	return nil
+}
+
+func (s *Service) syncItem(ctx context.Context, it *item) ([]plaidTxn, error) {
+	accounts, err := s.plaid.Accounts(ctx, it.access)
+	if err != nil {
+		return nil, err
 	}
 	// Pull every page of transaction changes first, then save in one go.
 	cursor := it.cursor
@@ -222,7 +230,7 @@ func (s *Service) syncItem(ctx context.Context, it *item) error {
 	for page := 0; page < 40; page++ {
 		p, err := s.plaid.Sync(ctx, it.access, cursor)
 		if err != nil {
-			return err
+			return nil, err
 		}
 		added = append(added, p.Added...)
 		modified = append(modified, p.Modified...)
@@ -240,7 +248,7 @@ func (s *Service) syncItem(ctx context.Context, it *item) error {
 
 	tx, err := s.pool.Begin(ctx)
 	if err != nil {
-		return err
+		return nil, err
 	}
 	defer tx.Rollback(ctx)
 	seen := make([]string, 0, len(accounts))
@@ -264,11 +272,11 @@ func (s *Service) syncItem(ctx context.Context, it *item) error {
 			uuid.New(), it.id, it.user, a.AccountID, clip(a.Name, 120), clip(a.OfficialName, 160), clip(a.Mask, 8), typ, clip(a.Subtype, 40),
 			centsPtr(a.Balances.Current), centsPtr(a.Balances.Available), centsPtr(a.Balances.Limit), cur)
 		if err != nil {
-			return err
+			return nil, err
 		}
 	}
 	if _, err := tx.Exec(ctx, `DELETE FROM fin_accounts WHERE item_id = $1 AND NOT (plaid_account_id = ANY($2))`, it.id, seen); err != nil {
-		return err
+		return nil, err
 	}
 	for _, t := range append(added, modified...) {
 		date, err := time.Parse("2006-01-02", t.Date)
@@ -291,22 +299,22 @@ func (s *Service) syncItem(ctx context.Context, it *item) error {
 			t.TransactionID, it.id, it.user, t.AccountID, date, clip(t.Name, 200), clip(t.MerchantName, 120), toCents(t.Amount), cur,
 			clip(cat, 60), clip(t.Category.Detailed, 100), t.Pending, httpsOnly(t.LogoURL))
 		if err != nil {
-			return err
+			return nil, err
 		}
 	}
 	if len(removed) > 0 {
 		if _, err := tx.Exec(ctx, `DELETE FROM fin_transactions WHERE item_id = $1 AND plaid_transaction_id = ANY($2)`, it.id, removed); err != nil {
-			return err
+			return nil, err
 		}
 	}
 	if _, err := tx.Exec(ctx, `UPDATE fin_items SET cursor = $2, synced_at = now(), status = 'ok' WHERE id = $1`, it.id, cursor); err != nil {
-		return err
+		return nil, err
 	}
 	if err := tx.Commit(ctx); err != nil {
-		return err
+		return nil, err
 	}
 	it.cursor = cursor
-	return nil
+	return added, nil
 }
 
 func clip(s string, n int) string {

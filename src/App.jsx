@@ -20,6 +20,7 @@ import Home from "@/onsave/Home";
 import Dashboard from "@/onsave/Dashboard";
 import FinPage from "@/onsave/fin/FinPage";
 import BudgetPage from "@/onsave/fin/BudgetPage";
+import AlertsPage from "@/onsave/fin/AlertsPage";
 import Groups from "@/onsave/Groups";
 import GroupDetail from "@/onsave/GroupDetail";
 import Pay from "@/onsave/Pay";
@@ -68,6 +69,7 @@ function App() {
           <Route path="save" element={<Home />} />
           <Route path="fin" element={<FinPage />} />
           <Route path="budget" element={<BudgetPage />} />
+          <Route path="alerts" element={<AlertsPage />} />
           <Route path="groups" element={<Groups />} />
           <Route path="groups/:id" element={<GroupDetail />} />
           <Route path="groups/:id/pay" element={<Pay />} />

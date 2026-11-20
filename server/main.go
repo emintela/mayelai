@@ -90,15 +90,25 @@ func main() {
 		}
 	}
 
+	pushSvc := push.New(store.Pool(), push.Config{
+		VAPIDPublicKey: cfg.VAPIDPublicKey, VAPIDPrivateKey: cfg.VAPIDPrivateKey, Subject: pushSubject(cfg),
+		FCMServiceAccount: cfg.FCMServiceAccount,
+		APNsKey:           cfg.APNsKey, APNsKeyID: cfg.APNsKeyID, APNsTeamID: cfg.APNsTeamID, APNsTopic: cfg.APNsTopic,
+	})
+
+	// New money alerts go out as push alerts; banks sync in the background.
+	finSvc.WithNotifier(routes.FinNotifier(pushSvc))
+	routes.StartFinSync(ctx, finSvc, 30*time.Minute, 4*time.Hour)
+
+	// "My Finances" chats see the person's banks, budgets and onSave.
+	moneyStore := money.NewStore(store.Pool())
+	svc.WithFinance(routes.FinanceContext(finSvc, moneyStore))
+
 	routes.Register(app, routes.Deps{
 		Fin:  finSvc,
 		Chat: svc, Store: store, Billing: bill, Config: cfg, PerMinute: cfg.PerMinuteLimit,
-		Money: money.NewStore(store.Pool()), MoneyAI: moneyAI,
-		Push: push.New(store.Pool(), push.Config{
-			VAPIDPublicKey: cfg.VAPIDPublicKey, VAPIDPrivateKey: cfg.VAPIDPrivateKey, Subject: pushSubject(cfg),
-			FCMServiceAccount: cfg.FCMServiceAccount,
-			APNsKey:           cfg.APNsKey, APNsKeyID: cfg.APNsKeyID, APNsTeamID: cfg.APNsTeamID, APNsTopic: cfg.APNsTopic,
-		}),
+		Money: moneyStore, MoneyAI: moneyAI,
+		Push: pushSvc,
 	})
 
 	if cfg.StaticDir != "" {

@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 import { Link, useSearchParams } from "react-router-dom";
-import { AlertTriangle, CheckCircle2, ChevronRight, CreditCard, PieChart, Landmark, LineChart, Loader2, RefreshCw, Search, Sparkles, Trash2, Wallet } from "lucide-react";
+import { AlertTriangle, Bell, CheckCircle2, ChevronRight, CreditCard, PieChart, Landmark, LineChart, Loader2, RefreshCw, Search, Sparkles, Trash2, Wallet } from "lucide-react";
 import { errorText, useApi } from "@/lib/api";
 import { useLang, useT } from "@/lib/i18n";
 import { cn } from "@/lib/utils";
@@ -28,15 +28,27 @@ const TYPE_ICON = { depository: Wallet, credit: CreditCard, loan: Landmark, inve
 
 function Header() {
   const t = useT();
+  const api = useApi();
+  const [unread, setUnread] = useState(false);
+  useEffect(() => {
+    api
+      .finAlerts()
+      .then((d) => setUnread(d.unread > 0))
+      .catch(() => {});
+  }, [api]);
   return (
     <header className="flex items-center gap-3">
       <span className="flex h-11 w-11 items-center justify-center rounded-full bg-os-brand text-white">
         <Sparkles className="h-5 w-5" aria-hidden="true" />
       </span>
-      <div className="min-w-0">
+      <div className="min-w-0 flex-1">
         <h1 className="os-display text-2xl font-extrabold leading-tight">{t("finTitle")}</h1>
         <p className="truncate text-[13px] text-os-muted">{t("finSubtitle")}</p>
       </div>
+      <Link to="/onsave/alerts" aria-label={t("alTitle")} className={cn(iconBtn, "relative")}>
+        <Bell className="h-5 w-5" />
+        {unread && <span className="absolute right-[11px] top-[10px] h-2.5 w-2.5 rounded-full border-2 border-os-card bg-[#d9467f]" />}
+      </Link>
     </header>
   );
 }
@@ -201,7 +213,7 @@ function Overview({ fin, hidden, toggle, goTab }) {
         )}
       </section>
 
-      <Link to="/onsave/ask" className="flex items-center justify-center gap-2 rounded-full bg-os-deep py-3 text-[15px] font-semibold text-white">
+      <Link to="/onsave/ask?fin=1" className="flex items-center justify-center gap-2 rounded-full bg-os-deep py-3 text-[15px] font-semibold text-white">
         <Sparkles className="h-4 w-4 text-os-mint" /> {t("finAskMayele")}
       </Link>
     </>

@@ -26,7 +26,7 @@ const TABS = [
   ["/onsave/save", Users, "tabOnSave", (p) => /^\/onsave\/(save|groups|collections|activity)/.test(p)],
   null, // the + button
   ["/onsave/money", HandCoins, "money", (p) => p.startsWith("/onsave/money")],
-  ["/onsave/fin", BarChart3, "tabAiFin", (p) => /^\/onsave\/(fin|budget)/.test(p)],
+  ["/onsave/fin", BarChart3, "tabAiFin", (p) => /^\/onsave\/(fin|budget|alerts)/.test(p)],
   ["/onsave/me", User, "tabMe", (p) => p.startsWith("/onsave/me")],
 ];
 

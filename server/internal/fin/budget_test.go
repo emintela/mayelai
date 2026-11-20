@@ -166,3 +166,38 @@ func hasTip(tips []Tip, kind string) bool {
 	}
 	return false
 }
+
+func TestSummary(t *testing.T) {
+	s, _ := newTestService(t)
+	ctx := context.Background()
+	today := time.Date(2026, 11, 10, 0, 0, 0, 0, time.UTC)
+	if txt, err := s.Summary(ctx, "alice", today); err != nil || txt != "" {
+		t.Fatalf("no bank: %q %v", txt, err)
+	}
+	if err := s.Connect(ctx, "alice", "public-sandbox-x", "ins_1", "Platypus"); err != nil {
+		t.Fatal(err)
+	}
+	_ = s.SetBudget(ctx, "alice", "FOOD_AND_DRINK", 5000)
+	txt, err := s.Summary(ctx, "alice", today)
+	if err != nil {
+		t.Fatal(err)
+	}
+	for _, want := range []string{
+		"Platypus Plaid Checking (depository ••0000): balance 1,200.50 USD",
+		"Net worth 5,790.25 USD",
+		"spent 105.10 USD, income 2,500.00 USD",
+		"- Food & dining: 80.00 USD / 50.00 USD",
+		"LAST MONTH (October 2026): spent 1,039.00 USD",
+		"2026-11-03 Uber 25.10 USD, Transportation",
+	} {
+		if !strings.Contains(txt, want) {
+			t.Fatalf("summary is missing %q:\n%s", want, txt)
+		}
+	}
+	if other, _ := s.Summary(ctx, "bob", today); other != "" {
+		t.Fatalf("bob sees alice: %s", other)
+	}
+	if Amount(-123456789, "EUR") != "-1,234,567.89 EUR" || Amount(5, "USD") != "0.05 USD" {
+		t.Fatalf("amount: %s %s", Amount(-123456789, "EUR"), Amount(5, "USD"))
+	}
+}

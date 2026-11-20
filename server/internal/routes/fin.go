@@ -159,6 +159,7 @@ func registerFin(api fiber.Router, d Deps) {
 		}
 		return c.JSON(fiber.Map{"created": n})
 	})
+	registerFinAlerts(f, d, on)
 	f.Get("/tips", on, func(c fiber.Ctx) error {
 		tips, err := d.Fin.Tips(c.Context(), auth.UserID(c), clientToday(c.Query("today")))
 		if err != nil {

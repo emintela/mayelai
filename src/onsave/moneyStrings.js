@@ -129,7 +129,7 @@ export const moneyEn = {
   osmOpenApp: "Open onSave",
   // alerts & pay handles (Me)
   osmAlerts: "Alerts",
-  osmAlertsBody: "Get a notification when someone requests money or answers you.",
+  osmAlertsBody: "Get notified about money requests, budgets, bills and unusual spending.",
   osmAlertsOn: "Alerts are on on this device.",
   osmTurnOn: "Turn on alerts",
   osmTurnOff: "Turn off",
@@ -293,7 +293,7 @@ export const moneyFr = {
   osmSavedInApp: "Enregistré dans votre onSave.",
   osmOpenApp: "Ouvrir onSave",
   osmAlerts: "Alertes",
-  osmAlertsBody: "Recevez une notification quand on vous demande de l'argent ou qu'on vous répond.",
+  osmAlertsBody: "Soyez prévenu des demandes d'argent, budgets, factures et dépenses inhabituelles.",
   osmAlertsOn: "Les alertes sont activées sur cet appareil.",
   osmTurnOn: "Activer les alertes",
   osmTurnOff: "Désactiver",

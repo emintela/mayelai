@@ -35,13 +35,15 @@ type Recurring struct {
 	Name         string `json:"name"`
 	MonthlyCents int64  `json:"monthly_cents"`
 	Category     string `json:"category"`
+	LastDate     string `json:"last_date"`
+	last         time.Time
 }
 
 func (s *Service) Recurring(ctx context.Context, user, currency string, today time.Time) ([]Recurring, error) {
-	rows, err := s.pool.Query(ctx, `SELECT name, avg_cents, category FROM (
+	rows, err := s.pool.Query(ctx, `SELECT name, avg_cents, category, last FROM (
 			SELECT coalesce(nullif(merchant_name, ''), name) AS name, (avg(amount_cents))::bigint AS avg_cents,
 				min(category) AS category, count(DISTINCT date_trunc('month', date)) AS months,
-				max(amount_cents) - min(amount_cents) AS spread
+				max(amount_cents) - min(amount_cents) AS spread, max(date) AS last
 			FROM fin_transactions
 			WHERE user_id = $1 AND currency = $2 AND date >= $3 AND amount_cents > 0 AND NOT pending
 				AND category IN ('ENTERTAINMENT', 'GENERAL_SERVICES', 'RENT_AND_UTILITIES', 'PERSONAL_CARE', 'MEDICAL')
@@ -53,7 +55,8 @@ func (s *Service) Recurring(ctx context.Context, user, currency string, today ti
 	}
 	return pgx.CollectRows(rows, func(r pgx.CollectableRow) (Recurring, error) {
 		var x Recurring
-		err := r.Scan(&x.Name, &x.MonthlyCents, &x.Category)
+		err := r.Scan(&x.Name, &x.MonthlyCents, &x.Category, &x.last)
+		x.LastDate = x.last.Format("2006-01-02")
 		return x, err
 	})
 }
