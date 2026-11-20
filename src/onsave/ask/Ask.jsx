@@ -5,9 +5,11 @@ import ChatComposer from "@/components/chat-composer";
 import { MessageActions, MessageAttachments } from "@/components/chat-messages";
 import { ConversationsProvider, useConversations } from "@/context/ConversationsContext";
 import { useT } from "@/lib/i18n";
+import { splitPlan } from "@/lib/plan";
 import { useChat } from "@/lib/useChat";
 import { cn } from "@/lib/utils";
 import { LogoMark, iconBtn } from "../ui";
+import { PlanCard } from "./PlanCard";
 
 // Mayele: the Mayel'AI assistant inside onSave. Same conversations as the web chat.
 
@@ -239,7 +241,9 @@ function AskScreen() {
               </Link>
             </div>
           )}
-          {messages.map((m) => (
+          {messages.map((m) => {
+            const { text, plan } = m.role === "assistant" ? splitPlan(m.content) : { text: m.content, plan: null };
+            return (
             <div key={m.id} className={cn("flex max-w-[88%] flex-col", m.role === "user" ? "self-end items-end" : "self-start")}>
               <div
                 className={cn(
@@ -258,16 +262,20 @@ function AskScreen() {
                   </span>
                 )}
                 <MessageAttachments message={m} />
-                {m.content && <p className="whitespace-pre-wrap break-words text-[15px] leading-relaxed">{m.content}</p>}
+                {text && <p className="whitespace-pre-wrap break-words text-[15px] leading-relaxed">{text}</p>}
+                {plan && <PlanCard plan={plan} />}
                 {m.upgrade && (
                   <Link to="/settings" className="mt-3 inline-flex items-center gap-1.5 rounded-full bg-os-btn px-4 py-1.5 text-sm font-semibold text-white">
                     <Sparkles className="h-4 w-4" /> {t("upgrade")}
                   </Link>
                 )}
               </div>
-              {m.role === "assistant" && !m.error && typeof m.id === "number" && <MessageActions message={m} onFeedback={handleFeedback} />}
+              {m.role === "assistant" && !m.error && typeof m.id === "number" && (
+                <MessageActions message={plan ? { ...m, content: text } : m} onFeedback={handleFeedback} />
+              )}
             </div>
-          ))}
+            );
+          })}
           {pending && <Thinking mode={pending} />}
         </div>
       </div>

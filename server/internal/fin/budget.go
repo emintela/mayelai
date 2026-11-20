@@ -202,6 +202,45 @@ func (s *Service) SetBudget(ctx context.Context, user, category string, amountCe
 	return err
 }
 
+// PlanBudget is one monthly budget in a plan Mayele proposed in chat.
+type PlanBudget struct {
+	Category    string `json:"category"`
+	AmountCents int64  `json:"amount_cents"`
+}
+
+// ApplyPlan creates or changes several budgets at once (all or nothing).
+func (s *Service) ApplyPlan(ctx context.Context, user string, plan []PlanBudget) (int, error) {
+	if len(plan) == 0 || len(plan) > len(Budgetable) {
+		return 0, fmt.Errorf("%w: the plan has no budgets", ErrInvalid)
+	}
+	seen := map[string]bool{}
+	for _, b := range plan {
+		if !Budgetable[b.Category] || seen[b.Category] {
+			return 0, fmt.Errorf("%w: unknown category", ErrInvalid)
+		}
+		if b.AmountCents <= 0 || b.AmountCents > 100_000_000_000 {
+			return 0, fmt.Errorf("%w: enter an amount above zero", ErrInvalid)
+		}
+		seen[b.Category] = true
+	}
+	cur, _, err := s.mainCurrency(ctx, user)
+	if err != nil {
+		return 0, err
+	}
+	tx, err := s.pool.Begin(ctx)
+	if err != nil {
+		return 0, err
+	}
+	defer tx.Rollback(ctx)
+	for _, b := range plan {
+		if _, err := tx.Exec(ctx, `INSERT INTO fin_budgets (user_id, category, amount_cents, currency) VALUES ($1, $2, $3, $4)
+			ON CONFLICT (user_id, category) DO UPDATE SET amount_cents = $3, currency = $4, updated_at = now()`, user, b.Category, b.AmountCents, cur); err != nil {
+			return 0, err
+		}
+	}
+	return len(plan), tx.Commit(ctx)
+}
+
 func (s *Service) DeleteBudget(ctx context.Context, user, category string) error {
 	_, err := s.pool.Exec(ctx, `DELETE FROM fin_budgets WHERE user_id = $1 AND category = $2`, user, category)
 	return err

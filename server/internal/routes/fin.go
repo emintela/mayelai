@@ -23,6 +23,7 @@ import (
 //	DELETE /api/fin/banks/:id
 //	GET    /api/fin/budgets?month=YYYY-MM&today=    PUT /api/fin/budgets {category, amount_cents}
 //	DELETE /api/fin/budgets/:category               POST /api/fin/budgets/suggest {cut: 0|10|20, today}
+//	POST   /api/fin/budgets/plan {budgets: [{category, amount_cents}]}
 //	GET    /api/fin/tips?today=
 func registerFin(api fiber.Router, d Deps) {
 	f := api.Group("/fin")
@@ -158,6 +159,20 @@ func registerFin(api fiber.Router, d Deps) {
 			return finError(c, err)
 		}
 		return c.JSON(fiber.Map{"created": n})
+	})
+	// A budget plan Mayele proposed in a "My Finances" chat, created in one tap.
+	f.Post("/budgets/plan", on, func(c fiber.Ctx) error {
+		var body struct {
+			Budgets []fin.PlanBudget `json:"budgets"`
+		}
+		if err := decodeStrict(c, &body); err != nil {
+			return finError(c, fin.ErrInvalid)
+		}
+		n, err := d.Fin.ApplyPlan(c.Context(), auth.UserID(c), body.Budgets)
+		if err != nil {
+			return finError(c, err)
+		}
+		return c.JSON(fiber.Map{"saved": n})
 	})
 	registerFinAlerts(f, d, on)
 	f.Get("/tips", on, func(c fiber.Ctx) error {

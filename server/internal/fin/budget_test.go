@@ -201,3 +201,33 @@ func TestSummary(t *testing.T) {
 		t.Fatalf("amount: %s %s", Amount(-123456789, "EUR"), Amount(5, "USD"))
 	}
 }
+
+func TestApplyPlan(t *testing.T) {
+	s, _ := newTestService(t)
+	ctx := context.Background()
+	today := time.Date(2026, 11, 10, 0, 0, 0, 0, time.UTC)
+	if err := s.SetBudget(ctx, "alice", "FOOD_AND_DRINK", 9000); err != nil {
+		t.Fatal(err)
+	}
+	if err := s.SetBudget(ctx, "alice", "TRAVEL", 9000); err != nil {
+		t.Fatal(err)
+	}
+	// A plan from chat changes food, adds transport and keeps travel; bad plans change nothing.
+	if n, err := s.ApplyPlan(ctx, "alice", []PlanBudget{{"FOOD_AND_DRINK", 3500}, {"TRANSPORTATION", 6000}}); err != nil || n != 2 {
+		t.Fatalf("plan: %d %v", n, err)
+	}
+	for _, bad := range [][]PlanBudget{nil, {{"INCOME", 100}}, {{"TRAVEL", 100}, {"TRAVEL", 200}}, {{"TRAVEL", 100}, {"MEDICAL", 0}}, {{"FOOD_AND_DRINK", 1}, {"INCOME", 5}}} {
+		if _, err := s.ApplyPlan(ctx, "alice", bad); !errors.Is(err, ErrInvalid) {
+			t.Fatalf("bad plan %v accepted: %v", bad, err)
+		}
+	}
+	if pv, _ := s.Budgets(ctx, "alice", today, today); len(pv.Budgets) != 3 {
+		t.Fatalf("after plan: %+v", pv.Budgets)
+	} else {
+		for _, b := range pv.Budgets {
+			if (b.Category == "FOOD_AND_DRINK" && b.AmountCents != 3500) || (b.Category == "TRANSPORTATION" && b.AmountCents != 6000) {
+				t.Fatalf("plan amounts: %+v", pv.Budgets)
+			}
+		}
+	}
+}

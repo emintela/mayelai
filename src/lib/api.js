@@ -104,6 +104,7 @@ export function useApi() {
       finBudgets: (month, today) => request("get", "/api/fin/budgets", { params: { month, today } }),
       finSetBudget: (category, amountCents) => request("put", "/api/fin/budgets", { data: { category, amount_cents: amountCents } }),
       finDeleteBudget: (category) => request("delete", `/api/fin/budgets/${encodeURIComponent(category)}`),
+      finApplyPlan: (budgets) => request("post", "/api/fin/budgets/plan", { data: { budgets } }),
       finSuggestBudgets: (cut, today) => request("post", "/api/fin/budgets/suggest", { data: { cut, today } }),
       finTips: (today) => request("get", "/api/fin/tips", { params: { today } }),
       finAlerts: () => request("get", "/api/fin/alerts"),

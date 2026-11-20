@@ -4,6 +4,7 @@ import Heading from "@/components/heading";
 import ChatComposer from "@/components/chat-composer";
 import { MessageActions, MessageAttachments } from "@/components/chat-messages";
 import { cn } from "@/lib/utils";
+import { splitPlan } from "@/lib/plan";
 import { useChat } from "@/lib/useChat";
 
 const Avatar = ({ role }) => (
@@ -156,7 +157,15 @@ const ChatPage = () => {
                     )}
                     <MessageAttachments message={message} />
                     {message.content && (
-                      <p className="whitespace-pre-wrap break-words text-sm leading-relaxed">{message.content}</p>
+                      <p className="whitespace-pre-wrap break-words text-sm leading-relaxed">{splitPlan(message.content).text}</p>
+                    )}
+                    {splitPlan(message.content).plan && conversationId && (
+                      <Link
+                        to={`/onsave/ask/${conversationId}`}
+                        className="mt-3 inline-flex items-center gap-1.5 rounded-full bg-primary px-4 py-1.5 text-sm font-medium text-primary-foreground transition hover:opacity-90"
+                      >
+                        <Sparkles className="h-4 w-4" /> Create these budgets in onSave
+                      </Link>
                     )}
                     {message.upgrade && (
                       <Link
@@ -168,7 +177,7 @@ const ChatPage = () => {
                     )}
                   </div>
                   {message.role === "assistant" && !message.error && typeof message.id === "number" && (
-                    <MessageActions message={message} onFeedback={handleFeedback} />
+                    <MessageActions message={{ ...message, content: splitPlan(message.content).text }} onFeedback={handleFeedback} />
                   )}
                 </div>
               </div>
