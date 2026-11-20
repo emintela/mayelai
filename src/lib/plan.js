@@ -7,12 +7,22 @@ const BUDGETABLE = new Set([
   "MEDICAL", "TRAVEL", "HOME_IMPROVEMENT", "GENERAL_SERVICES", "GOVERNMENT_AND_NON_PROFIT", "BANK_FEES", "OTHER",
 ]);
 
+// Names the model sometimes uses instead of the codes.
+const ALIAS = {
+  SHOPPING: "GENERAL_MERCHANDISE", FOOD: "FOOD_AND_DRINK", DINING: "FOOD_AND_DRINK", GROCERIES: "FOOD_AND_DRINK",
+  HOUSING: "RENT_AND_UTILITIES", RENT: "RENT_AND_UTILITIES", UTILITIES: "RENT_AND_UTILITIES", BILLS: "RENT_AND_UTILITIES",
+  TRANSPORT: "TRANSPORTATION", HEALTH: "MEDICAL", SERVICES: "GENERAL_SERVICES", FEES: "BANK_FEES", ALL: "TOTAL",
+};
+
 function readPlan(json) {
   try {
     const p = JSON.parse(json);
     const seen = new Set();
     const budgets = (Array.isArray(p?.budgets) ? p.budgets : [])
-      .map((b) => ({ category: String(b?.category || "").toUpperCase(), amount_cents: Math.round(Number(b?.amount) * 100) }))
+      .map((b) => {
+        const c = String(b?.category || "").toUpperCase().replace(/&/g, " AND ").trim().replace(/[\s-]+/g, "_");
+        return { category: ALIAS[c] || c, amount_cents: Math.round(Number(b?.amount) * 100) };
+      })
       .filter((b) => BUDGETABLE.has(b.category) && Number.isFinite(b.amount_cents) && b.amount_cents > 0 && !seen.has(b.category) && seen.add(b.category));
     if (!budgets.length) return null;
     budgets.sort((a, b) => (a.category === "TOTAL" ? -1 : b.category === "TOTAL" ? 1 : b.amount_cents - a.amount_cents));

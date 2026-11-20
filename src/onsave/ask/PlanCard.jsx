@@ -27,9 +27,11 @@ export function PlanCard({ plan }) {
         const by = {};
         for (const b of v.budgets || []) by[b.category] = b.amount_cents;
         if (v.overall) by.TOTAL = v.overall.amount_cents;
-        setCurrent({ by, currency: v.currency || "USD" });
+        const spent = { TOTAL: v.spent_cents || 0 };
+        for (const c of v.by_category || []) spent[c.category] = c.cents;
+        setCurrent({ by, spent, currency: v.currency || "USD" });
       })
-      .catch(() => !off && setCurrent({ by: {}, currency: "USD" }));
+      .catch(() => !off && setCurrent({ by: {}, spent: {}, currency: "USD" }));
     return () => {
       off = true;
     };
@@ -66,11 +68,17 @@ export function PlanCard({ plan }) {
       <ul className="divide-y divide-os-line">
         {plan.budgets.map((b) => {
           const was = current?.by[b.category];
+          const spent = current?.spent?.[b.category] || 0;
           return (
             <li key={b.category} className="flex items-center gap-3 px-3.5 py-2">
               <CategoryIcon category={b.category} size={30} />
-              <span className="min-w-0 flex-1 truncate text-[14px] font-medium">
-                {b.category === "TOTAL" ? t("planTotal") : t(`finCat_${b.category}`)}
+              <span className="min-w-0 flex-1">
+                <span className="block truncate text-[14px] font-medium">{b.category === "TOTAL" ? t("planTotal") : t(`finCat_${b.category}`)}</span>
+                {spent > 0 && (
+                  <span className={cn("block text-[11.5px]", spent > b.amount_cents ? "font-semibold text-os-danger" : "text-os-muted")}>
+                    {t(spent > b.amount_cents ? "planOver" : "planSpent", { amount: money(spent, cur, lang) })}
+                  </span>
+                )}
               </span>
               <span className="text-right">
                 <span className="block text-[14px] font-semibold">{money(b.amount_cents, cur, lang)}</span>

@@ -102,6 +102,8 @@ export const finEn = {
   planCreate: "Create these budgets",
   planUpdate: "Save these budgets",
   planDone: "Budgets saved · View",
+  planSpent: "{amount} spent so far this month",
+  planOver: "Below the {amount} already spent this month",
   // alerts
   alTitle: "Alerts & Tips",
   alAlerts: "Alerts",
@@ -302,6 +304,8 @@ export const finFr = {
   planCreate: "Créer ces budgets",
   planUpdate: "Enregistrer ces budgets",
   planDone: "Budgets enregistrés · Voir",
+  planSpent: "{amount} déjà dépensés ce mois-ci",
+  planOver: "Sous les {amount} déjà dépensés ce mois-ci",
   alTitle: "Alertes et conseils",
   alAlerts: "Alertes",
   alTips: "Conseils",
